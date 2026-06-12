@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { DASH, BRAND } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import {
   Field, Input, Select, Toggle, SectionCard, FormGrid,
   IconBtn, Badge, EmptyState, useToast,
@@ -150,7 +150,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
     if (!confirm(`Delete "${fileName}"? This action cannot be undone.`)) return;
     try {
       await equipmentAPI.media.delete(id, mediaId);
-      setMedia(m => m.filter(x => x.media_id !== mediaId));
+      setMedia(m => m.filter(x => x.id !== mediaId));
       show(`File "${fileName}" deleted`, "success");
       onRefresh();
     } catch {
@@ -166,11 +166,11 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
     try {
       await equipmentAPI.media.edit(id, mediaId, { is_primary: true });
       // Update local state to ensure only one primary per type
-      const mediaItem = media.find(m => m.media_id === mediaId);
+      const mediaItem = media.find(m => m.id === mediaId);
       if (mediaItem) {
         const updatedMedia = media.map(m => ({
           ...m,
-          is_primary: m.media_type === mediaItem.media_type ? m.media_id === mediaId : m.is_primary
+          is_primary: m.media_type === mediaItem.media_type ? m.id === mediaId : m.is_primary
         }));
         setMedia(updatedMedia);
       }
@@ -366,7 +366,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {filtered.map(m => (
               <div 
-                key={m.media_id} 
+                key={m.id} 
                 style={{
                   border: `1px solid ${DASH.border}`,
                   borderRadius: 10, overflow: "hidden",
@@ -404,7 +404,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
                   )}
                   <div style={{ position: "absolute", top: 6, right: 6 }}>
                     <IconBtn 
-                      onClick={() => handleDelete(m.media_id, m.file_name)} 
+                      onClick={() => handleDelete(m.id, m.file_name)} 
                       danger 
                       title="Delete file"
                     >
@@ -416,7 +416,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
                   {!m.is_primary && (
                     <div style={{ position: "absolute", bottom: 6, right: 6 }}>
                       <IconBtn 
-                        onClick={() => handleSetPrimary(m.media_id, m.is_primary)} 
+                        onClick={() => handleSetPrimary(m.id, m.is_primary ?? false)} 
                         title="Set as primary"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

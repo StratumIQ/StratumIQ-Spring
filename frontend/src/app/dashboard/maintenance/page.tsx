@@ -1,5 +1,5 @@
 "use client";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import ComingSoon from "@/components/dashboard/common/ComingSoon";
 export default function MaintenancePage() {
   return <ComingSoon module="Maintenance" />;
 }

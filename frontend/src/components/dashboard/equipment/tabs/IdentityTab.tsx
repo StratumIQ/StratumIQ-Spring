@@ -9,12 +9,12 @@
 
 import { useState } from "react";
 import { DASH } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import { useMutation, useOEMs } from "../hooks/useEquipment";
 import {
   Field, Input, Select, Toggle, SaveBtn, SectionCard, FormGrid, FormRow, useToast, Badge,
 } from "../shared/EqUI";
-import type { EquipmentSpec } from "@/types/equipment";
+import type { EquipmentSpec, EquipmentStatus } from "@/types/equipment";
 
 const STATUS_OPTS = [
   { value: "draft",        label: "Draft" },
@@ -141,7 +141,7 @@ export default function IdentityTab({ spec, onRefresh }: { spec: EquipmentSpec; 
       {/* Status card */}
       <SectionCard title="Publication Status" subtitle="Controls visibility of this equipment">
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <Select value={status} onChange={setStatus} options={STATUS_OPTS} />
+          <Select value={status} onChange={(v) => setStatus(v as EquipmentStatus)} options={STATUS_OPTS} />
           <Badge label={status} variant={status} />
           <SaveBtn loading={savingStatus} onClick={handleSaveStatus} label="Update Status" />
         </div>

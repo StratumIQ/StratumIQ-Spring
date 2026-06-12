@@ -2,21 +2,18 @@
  * Fleet Types — StratumIQ
  * Path: frontend/src/types/fleet.ts
  *
- * All field names mirror the DB column names returned by fleet.service.js
- * (snake_case from PostgreSQL). Never rename or alias here — align to backend.
- *
- * EQUIPMENT_STATUS / EQUIPMENT_CATEGORY values must match
- * backend/src/config/constants.js exactly.
+ * All field names mirror the DB column names returned by the Spring backend.
+ * Enum values must match Java enum names exactly (UPPER_CASE).
  */
 
-// ── Enums (must match backend constants.js) ───────────────────
-export type EquipmentStatus   = "active" | "idle" | "maintenance" | "retired";
-export type EquipmentCategory = "crusher" | "screener" | "conveyor" | "mobile_plant" | "other";
-export type ServiceType       = "preventive" | "corrective" | "inspection";
-export type ServiceStatus     = "scheduled" | "in_progress" | "completed" | "overdue";
-export type OperationEventType = "hours_update" | "downtime" | "note";
+// ── Enums (must match Java enums in backend/common/enums/) ───────────────────
+export type EquipmentStatus   = "ACTIVE" | "IDLE" | "MAINTENANCE" | "RETIRED";
+export type EquipmentCategory = "CRUSHER" | "SCREENER" | "CONVEYOR" | "MOBILE_PLANT" | "OTHER";
+export type ServiceType       = "PREVENTIVE" | "CORRECTIVE" | "INSPECTION";
+export type ServiceStatus     = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
+export type OperationEventType = "HOURS_UPDATE" | "DOWNTIME" | "NOTE";
 
-// ── Equipment (matches SELECT * FROM equipment + sub-selects) ─
+// ── Equipment (matches FleetEquipment entity) ─────────────────────────────────
 export type FleetEquipment = {
   id:                number;
   user_id:           number;
@@ -27,9 +24,9 @@ export type FleetEquipment = {
   model:             string | null;
   make_year:         number | null;
   status:            EquipmentStatus;
-  running_hours:     string;        // NUMERIC comes back as string from pg
+  running_hours:     string;        // NUMERIC comes back as string
   location:          string | null;
-  last_service_date: string | null; // DATE as ISO string
+  last_service_date: string | null;
   engine_type:       string | null;
   power_output:      string | null;
   capacity:          string | null;
@@ -44,7 +41,7 @@ export type FleetEquipment = {
   overdue_count?:    string;
 };
 
-// ── Fleet summary (GET /api/fleet/summary) ─────────────────────
+// ── Fleet summary (GET /api/fleet/summary) ────────────────────────────────────
 export type FleetSummary = {
   total:                  string;
   active:                 string;
@@ -55,7 +52,7 @@ export type FleetSummary = {
   service_overdue_count:  string;
 };
 
-// ── Pagination wrapper (GET /api/fleet) ───────────────────────
+// ── Pagination wrapper (GET /api/fleet) ───────────────────────────────────────
 export type FleetListResponse = {
   equipment:  FleetEquipment[];
   pagination: {
@@ -66,7 +63,7 @@ export type FleetListResponse = {
   };
 };
 
-// ── Service record (matches SELECT * FROM service_records) ────
+// ── Service record ────────────────────────────────────────────────────────────
 export type ServiceRecord = {
   id:                 number;
   equipment_id:       number;
@@ -86,7 +83,7 @@ export type ServiceRecord = {
   updated_at:         string;
 };
 
-// ── Operation event (matches SELECT * FROM equipment_operations)
+// ── Operation event ───────────────────────────────────────────────────────────
 export type OperationLog = {
   id:                    number;
   equipment_id:          number;
@@ -99,10 +96,10 @@ export type OperationLog = {
   logged_at:             string;
 };
 
-// ── API request payloads (match Joi validation schemas) ────────
+// ── API request payloads ──────────────────────────────────────────────────────
 export type CreateEquipmentPayload = {
-  name:          string;
-  category:      EquipmentCategory;
+  name:           string;
+  category:       EquipmentCategory;
   serial_number?: string;
   brand?:         string;
   model?:         string;
@@ -152,6 +149,6 @@ export type CreateServiceRecordPayload = {
 export type UpdateServiceRecordPayload = Partial<CreateServiceRecordPayload>;
 
 export type LogOperationPayload =
-  | { event_type: "hours_update"; hours_logged: number; note?: string }
-  | { event_type: "downtime";     downtime_reason: string; note?: string }
-  | { event_type: "note";         note: string };
+  | { event_type: "HOURS_UPDATE"; hours_logged: number; note?: string }
+  | { event_type: "DOWNTIME";     downtime_reason: string; note?: string }
+  | { event_type: "NOTE";         note: string };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DASH } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import { useMutation } from "../hooks/useEquipment";
 import {
   Field, Input, Select, Textarea, SaveBtn, SectionCard, FormGrid,
@@ -27,20 +27,20 @@ function TechnicalMasterSection({ spec, onSaved }: { spec: EquipmentSpec; onSave
   const { show, ToastEl } = useToast();
   const { mutate, loading } = useMutation(equipmentAPI.technical.upsertMaster);
   const id = spec.identity.equipment_id;
-  const initial = spec.technical?.master ?? {};
+  const initial = spec.technical?.master;
   const [errors, setErrors] = useState<TechnicalMasterErrors>({});
 
   const [form, setForm] = useState({
-    weight_kg:              String(initial.weight_kg ?? ""),
-    power_kw:               String(initial.power_kw ?? ""),
-    drive_type:             initial.drive_type ?? "",
-    engine_model:           initial.engine_model ?? "",
-    fuel_efficiency_lph:    String(initial.fuel_efficiency_lph ?? ""),
-    max_feed_size_mm:       String(initial.max_feed_size_mm ?? ""),
-    capacity_tph_min:       String(initial.capacity_tph_min ?? ""),
-    capacity_tph_max:       String(initial.capacity_tph_max ?? ""),
-    operating_cost_per_ton: String(initial.operating_cost_per_ton ?? ""),
-    wear_cost_per_ton:      String(initial.wear_cost_per_ton ?? ""),
+    weight_kg:              String(initial?.weight_kg ?? ""),
+    power_kw:               String(initial?.power_kw ?? ""),
+    drive_type:             initial?.drive_type ?? "",
+    engine_model:           initial?.engine_model ?? "",
+    fuel_efficiency_lph:    String(initial?.fuel_efficiency_lph ?? ""),
+    max_feed_size_mm:       String(initial?.max_feed_size_mm ?? ""),
+    capacity_tph_min:       String(initial?.capacity_tph_min ?? ""),
+    capacity_tph_max:       String(initial?.capacity_tph_max ?? ""),
+    operating_cost_per_ton: String(initial?.operating_cost_per_ton ?? ""),
+    wear_cost_per_ton:      String(initial?.wear_cost_per_ton ?? ""),
   });
 
   const n = (v: string) => v.trim() !== "" ? Number(v) : undefined;

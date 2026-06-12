@@ -1,7 +1,9 @@
 "use client";
+
 import { use } from "react";
-import EquipmentSpecPage from "@/components/dashboard/EquipmentSpecView";
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
+import EquipmentDetail from "@/components/dashboard/equipment/EquipmentDetail";
+
+export default function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  return <EquipmentSpecPage equipmentId={id} />;
+  return <EquipmentDetail equipmentId={id} />;
 }

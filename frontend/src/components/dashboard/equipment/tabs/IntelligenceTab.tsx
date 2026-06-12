@@ -36,7 +36,7 @@
 
 import { useState } from "react";
 import { BRAND, DASH } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import { useMutation } from "../hooks/useEquipment";
 import {
   Field, Input, Select, Textarea, Toggle, SaveBtn,
@@ -241,24 +241,24 @@ function SuitabilitySection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: (
   const { show, ToastEl } = useToast();
   const { mutate, loading } = useMutation(equipmentAPI.intelligence.upsertSuitability);
   const id = spec.identity.equipment_id;
-  const s = spec.intelligence?.suitability ?? {};
+  const s = spec.intelligence?.suitability;
   const [errors, setErrors] = useState<SuitabilityErrors>({});
 
   const [form, setForm] = useState({
-    hard_rock:             s.hard_rock             ?? false,
-    soft_rock:             s.soft_rock             ?? false,
-    recycling:             s.recycling             ?? false,
-    limestone:             s.limestone             ?? false,
-    river_gravel:          s.river_gravel          ?? false,
-    sand_gravel:           s.sand_gravel           ?? false,
-    wet_feed:              s.wet_feed              ?? false,
-    high_moisture:         s.high_moisture         ?? false,
-    primary_stage:         s.primary_stage         ?? false,
-    secondary_stage:       s.secondary_stage       ?? false,
-    tertiary_stage:        s.tertiary_stage        ?? false,
-    abrasiveness_idx_max:  String(s.abrasiveness_idx_max  ?? ""),
-    feed_moisture_max_pct: String(s.feed_moisture_max_pct ?? ""),
-    notes:                 s.notes ?? "",
+    hard_rock:             s?.hard_rock             ?? false,
+    soft_rock:             s?.soft_rock             ?? false,
+    recycling:             s?.recycling             ?? false,
+    limestone:             s?.limestone             ?? false,
+    river_gravel:          s?.river_gravel          ?? false,
+    sand_gravel:           s?.sand_gravel           ?? false,
+    wet_feed:              s?.wet_feed              ?? false,
+    high_moisture:         s?.high_moisture         ?? false,
+    primary_stage:         s?.primary_stage         ?? false,
+    secondary_stage:       s?.secondary_stage       ?? false,
+    tertiary_stage:        s?.tertiary_stage        ?? false,
+    abrasiveness_idx_max:  String(s?.abrasiveness_idx_max  ?? ""),
+    feed_moisture_max_pct: String(s?.feed_moisture_max_pct ?? ""),
+    notes:                 s?.notes ?? "",
   });
 
   const set = (k: string) => (v: string | boolean) => {
@@ -398,17 +398,17 @@ function RatingsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () =>
   const { show, ToastEl } = useToast();
   const { mutate, loading } = useMutation(equipmentAPI.intelligence.upsertRatings);
   const id = spec.identity.equipment_id;
-  const r = spec.intelligence?.ratings ?? {};
+  const r = spec.intelligence?.ratings;
   const [errors, setErrors] = useState<RatingsErrors>({});
 
   const [form, setForm] = useState({
-    fuel_efficiency:        (r.fuel_efficiency        ?? "") as string,
-    engine_rating:          (r.engine_rating          ?? "") as string,
-    maintenance_simplicity: (r.maintenance_simplicity ?? "") as string,
-    reliability:            (r.reliability            ?? "") as string,
-    parts_availability:     (r.parts_availability     ?? "") as string,
-    tco_rating:             (r.tco_rating             ?? "") as string,
-    overall_score:          String(r.overall_score    ?? ""),
+    fuel_efficiency:        (r?.fuel_efficiency        ?? "") as string,
+    engine_rating:          (r?.engine_rating          ?? "") as string,
+    maintenance_simplicity: (r?.maintenance_simplicity ?? "") as string,
+    reliability:            (r?.reliability            ?? "") as string,
+    parts_availability:     (r?.parts_availability     ?? "") as string,
+    tco_rating:             (r?.tco_rating             ?? "") as string,
+    overall_score:          String(r?.overall_score    ?? ""),
   });
 
   const set = (k: string) => (v: string) => {

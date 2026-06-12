@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DASH } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import { useMutation } from "../hooks/useEquipment";
 import {
   Field, Input, Select, Textarea, Toggle, SaveBtn,
