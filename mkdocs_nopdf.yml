@@ -1,0 +1,22 @@
+site_name: Stratumiq Docs
+site_author: Stratumiq Team
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - System Overview: docs/01-system-overview.md
+  - Database Guide: docs/02-database-guide.md
+  - Authentication Flow: docs/03-authentication-flow.md
+  - API Reference: docs/04-api-reference.md
+  - Fleet Module: docs/05-fleet-module.md
+  - Dashboard Module: docs/06-dashboard-module.md
+  - Code Flow Guide: docs/07-code-flow-guide.md
+  - New Developer Onboarding: docs/08-new-developer-onboarding.md
+  - How To Add New Features: docs/09-how-to-add-new-features.md
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.superfences
+plugins:
+  - search
