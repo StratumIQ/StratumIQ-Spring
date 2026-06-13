@@ -8,30 +8,32 @@
  */
 
 import { useState } from "react";
+import { FileText, Image, BookOpen, ClipboardList, Ruler, Film, FolderOpen } from "lucide-react";
 import { DASH, BRAND } from "@/lib/constants";
 import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
+import { notify } from "@/lib/toast";
 import {
   Field, Input, Select, Toggle, SectionCard, FormGrid,
-  IconBtn, Badge, EmptyState, useToast,
+  IconBtn, Badge, EmptyState,
 } from "../shared/EqUI";
 import type { EquipmentSpec, Media, MediaType } from "@/types/equipment";
 
-const MEDIA_TYPE_OPTS: { value: MediaType; label: string; icon: string }[] = [
-  { value: "image",      label: "Image",        icon: "🖼️" },
-  { value: "brochure",   label: "Brochure",     icon: "📄" },
-  { value: "manual",     label: "Manual",       icon: "📖" },
-  { value: "spec_sheet", label: "Spec Sheet",   icon: "📋" },
-  { value: "cad",        label: "CAD Drawing",  icon: "📐" },
-  { value: "video",      label: "Video",        icon: "🎬" },
+const MEDIA_TYPE_OPTS: { value: MediaType; label: string; Icon: typeof Image }[] = [
+  { value: "image",      label: "Image",        Icon: Image },
+  { value: "brochure",   label: "Brochure",     Icon: FileText },
+  { value: "manual",     label: "Manual",       Icon: BookOpen },
+  { value: "spec_sheet", label: "Spec Sheet",   Icon: ClipboardList },
+  { value: "cad",        label: "CAD Drawing",  Icon: Ruler },
+  { value: "video",      label: "Video",        Icon: Film },
 ];
 
-const TYPE_ICON: Record<MediaType, string> = {
-  image:      "🖼️",
-  brochure:   "📄",
-  manual:     "📖",
-  spec_sheet: "📋",
-  cad:        "📐",
-  video:      "🎬",
+const TYPE_ICON: Record<MediaType, typeof Image> = {
+  image: Image,
+  brochure: FileText,
+  manual: BookOpen,
+  spec_sheet: ClipboardList,
+  cad: Ruler,
+  video: Film,
 };
 
 function formatBytes(bytes: number) {
@@ -47,13 +49,13 @@ interface MediaFormErrors {
 }
 
 export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onRefresh: () => void }) {
-  const { show, ToastEl } = useToast();
   const id = spec.identity.equipment_id;
   const [media, setMedia] = useState<Media[]>(spec.media ?? []);
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<MediaType | "">("");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<MediaFormErrors>({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     media_type:      "image" as MediaType,
@@ -108,15 +110,16 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
 
   const handleAdd = async () => {
     if (!validateForm()) {
-      show("Please fix the errors above before adding", "error");
+      notify.error("Please fix the errors above before adding");
       return;
     }
     
     setSaving(true);
+    const savedName = form.file_name.trim();
     try {
       const res = await equipmentAPI.media.upload(id, {
         media_type:      form.media_type,
-        file_name:       form.file_name.trim(),
+        file_name:       savedName,
         file_url:        form.file_url.trim(),
         file_size_bytes: form.file_size_bytes ? Number(form.file_size_bytes) : undefined,
         language:        form.language?.trim() || undefined,
@@ -137,35 +140,38 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
       });
       setAdding(false);
       setErrors({});
-      show(`File "${form.file_name}" uploaded successfully!`, "success");
+      notify.success(`File "${savedName}" uploaded successfully`);
       onRefresh();
     } catch {
-      show("Failed to upload media. Please try again.", "error");
+      notify.error("Failed to upload media. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (mediaId: number, fileName: string) => {
-    if (!confirm(`Delete "${fileName}"? This action cannot be undone.`)) return;
+    if (deleteConfirmId !== mediaId) {
+      setDeleteConfirmId(mediaId);
+      return;
+    }
     try {
       await equipmentAPI.media.delete(id, mediaId);
       setMedia(m => m.filter(x => x.id !== mediaId));
-      show(`File "${fileName}" deleted`, "success");
+      notify.success(`File "${fileName}" deleted`);
+      setDeleteConfirmId(null);
       onRefresh();
     } catch {
-      show("Failed to delete media", "error");
+      notify.error("Failed to delete media");
     }
   };
 
   const handleSetPrimary = async (mediaId: number, currentIsPrimary: boolean) => {
     if (currentIsPrimary) {
-      show("This file is already primary", "info");
+      notify.info("This file is already primary");
       return;
     }
     try {
       await equipmentAPI.media.edit(id, mediaId, { is_primary: true });
-      // Update local state to ensure only one primary per type
       const mediaItem = media.find(m => m.id === mediaId);
       if (mediaItem) {
         const updatedMedia = media.map(m => ({
@@ -174,10 +180,10 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
         }));
         setMedia(updatedMedia);
       }
-      show("Primary file updated", "success");
+      notify.success("Primary file updated");
       onRefresh();
     } catch {
-      show("Failed to update primary status", "error");
+      notify.error("Failed to update primary status");
     }
   };
 
@@ -185,8 +191,6 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
 
   return (
     <>
-      {ToastEl}
-
       <SectionCard
         title="Media & Documents"
         subtitle="Images, brochures, manuals, CAD files and videos"
@@ -220,7 +224,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
                 <Select
                   value={form.media_type}
                   onChange={set("media_type") as (v: string) => void}
-                  options={MEDIA_TYPE_OPTS.map(o => ({ value: o.value, label: `${o.icon} ${o.label}` }))}
+                  options={MEDIA_TYPE_OPTS.map(o => ({ value: o.value, label: o.label }))}
                 />
               </Field>
               <Field label="File Name" required error={errors.file_name}>
@@ -327,6 +331,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
             {MEDIA_TYPE_OPTS.map(t => {
               const count = media.filter(m => m.media_type === t.value).length;
               if (count === 0) return null;
+              const Icon = t.Icon;
               return (
                 <button
                   key={t.value}
@@ -337,9 +342,10 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
                     background: filter === t.value ? `${BRAND.orange}15` : "transparent",
                     color: filter === t.value ? BRAND.orange : DASH.text3,
                     fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  {t.icon} {t.label} ({count})
+                  <Icon size={12} /> {t.label} ({count})
                 </button>
               );
             })}
@@ -349,7 +355,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
         {/* Media grid */}
         {filtered.length === 0 ? (
           <EmptyState
-            icon="📁"
+            icon={<FolderOpen size={32} />}
             title="No media uploaded yet"
             desc="Add brochures, images, manuals, CAD files and more"
             action={
@@ -392,7 +398,10 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
                       onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} 
                     />
                   ) : (
-                    <div style={{ fontSize: 36 }}>{TYPE_ICON[m.media_type]}</div>
+                    (() => {
+                      const Icon = TYPE_ICON[m.media_type];
+                      return <Icon size={32} color={DASH.text3} strokeWidth={1.25} />;
+                    })()
                   )}
                   {m.is_primary && (
                     <span style={{

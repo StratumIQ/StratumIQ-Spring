@@ -140,6 +140,9 @@ public class AuthService {
                 "Invalid email or password");
         }
 
+        user.setLastLoginAt(Instant.now());
+        userRepo.save(user);
+
         return issueTokens(user);
     }
 
@@ -269,13 +272,21 @@ public class AuthService {
                 "fleet:view",        "fleet:create",
                 "fleet:edit",        "fleet:delete",
                 "maintenance:view",  "maintenance:create",
-                "maintenance:edit"
+                "maintenance:edit",
+                "admin:dashboard:view",
+                "admin:users:view",  "admin:users:edit",
+                "admin:fleet:view",
+                "admin:support:view", "admin:support:manage"
             );
             case ADMIN -> List.of(
                 "fleet:view",        "fleet:create",
                 "fleet:edit",        "fleet:delete",
                 "maintenance:view",  "maintenance:create",
-                "maintenance:edit"
+                "maintenance:edit",
+                "admin:dashboard:view",
+                "admin:users:view",  "admin:users:edit",
+                "admin:fleet:view",
+                "admin:support:view", "admin:support:manage"
             );
             case DEALER -> List.of(
                 "fleet:view",

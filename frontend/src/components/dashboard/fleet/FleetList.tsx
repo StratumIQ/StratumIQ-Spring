@@ -27,6 +27,8 @@ import {
 } from "./shared/FleetUI";
 import ConfirmDeleteModal from "./modals/ConfirmDeleteModal";
 import { useFleet, useFleetSummary, useUpdateStatus, useDeleteEquipment } from "./hooks/useFleet";
+import { notify } from "@/lib/toast";
+import { resolveAssetUrl } from "@/lib/constants";
 import type { FleetEquipment, EquipmentStatus, ListEquipmentParams } from "@/types/fleet";
 
 // Must match Java EquipmentStatus enum (UPPER_CASE)
@@ -90,8 +92,12 @@ export default function FleetList() {
 
   const handleStatusChange = async (eq: FleetEquipment, newStatus: EquipmentStatus) => {
     try {
-      await changeStatus(eq.id, { status: newStatus }, () => refetch());
-    } catch {
+      await changeStatus(eq.id, { status: newStatus }, () => {
+        refetch();
+        notify.success("Fleet status updated");
+      });
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to update status");
       refetch();
     }
   };
@@ -101,9 +107,11 @@ export default function FleetList() {
     try {
       await removeAsset(deleteModal.equipmentId, () => {
         refetch();
+        notify.success("Fleet asset removed");
         setDeleteModal({ isOpen: false, equipmentId: null, equipmentName: "" });
       });
-    } catch {
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to delete fleet asset");
       refetch();
       setDeleteModal({ isOpen: false, equipmentId: null, equipmentName: "" });
     }
@@ -318,7 +326,7 @@ function FleetCard({
     <GlassCard hover className="d-fleet-card" onClick={onView}>
       <div className="d-fleet-card-img">
         {eq.image_url ? (
-          <img src={eq.image_url} alt={eq.name} />
+          <img src={resolveAssetUrl(eq.image_url) ?? eq.image_url} alt={eq.name} />
         ) : (
           <div className="d-fleet-card-placeholder">
             <ImageIcon size={40} strokeWidth={1.25} />

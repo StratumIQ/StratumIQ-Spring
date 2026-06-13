@@ -1,1001 +1,425 @@
 "use client";
 
-/**
- * Auth Page — StratumIQ
- * Split screen: LEFT = brand panel, RIGHT = auth card (login ↔ signup flip)
- * NO vertical scroll — everything fits 100vh on all devices.
- */
-
-import { useState, useEffect, Suspense, memo, useCallback, useRef, ChangeEvent } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Eye, EyeOff, Loader2, Shield, Truck, Wrench, Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 import { authAPI } from "@/lib/utils";
+import { API_URL } from "@/lib/constants";
+import { getDashboardPath } from "@/lib/routing/dashboardRoutes";
+import { notify } from "@/lib/toast";
+import AuthToaster from "@/components/auth/AuthToaster";
+import AuthIllustration from "@/components/auth/AuthIllustration";
+import AuthLottie from "@/components/auth/AuthLottie";
+import OtpInput from "@/components/auth/OtpInput";
+import {
+  checkPassword,
+  isValidEmail,
+  normalizeIndianPhone,
+  passwordStrength,
+  validateIndianPhone,
+} from "@/lib/validation";
 
-/* ─── TOKENS ─────────────────────────────────────────── */
-const C = {
-  orange:     "#E8692C",
-  orangeDk:   "#C9531A",
-  orangeGlow: "rgba(232,105,44,0.30)",
-  orangeDim:  "rgba(232,105,44,0.10)",
-  bg:         "#0B0F1A",
-  panel:      "#111827",
-  card:       "#161D2E",
-  border:     "rgba(255,255,255,0.07)",
-  borderFoc:  "rgba(232,105,44,0.60)",
-  text:       "#EFF2F7",
-  muted:      "rgba(239,242,247,0.45)",
-  faint:      "rgba(239,242,247,0.20)",
-  shadow:     "0 24px 56px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)",
-} as const;
+type Mode = "login" | "register";
+type Step = "login" | "register-1" | "register-2" | "register-3" | "verify-email" | "verify-phone" | "done";
 
-/* ─── PREMIUM SVG ICONS ───────────────────────────────── */
-const Logo = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-    <path d="M15 6C15 4.067 13.433 2.5 11.5 2.5H8C5.515 2.5 5.515 7.5 8 7.5H11.5C13.985 7.5 13.985 12.5 11.5 12.5H7"
-      stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const EyeIcon = ({ off }: { off?: boolean }) => off ? (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
-    <line x1="1" y1="1" x2="23" y2="23"/>
-  </svg>
-) : (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-);
-
-const SpinIcon = () => (
-  <svg style={{ animation: "auth-spin .75s linear infinite", flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" strokeWidth="3"/>
-    <path d="M12 2a10 10 0 0110 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-  </svg>
-);
-
-const ShieldIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(239,242,247,0.20)" strokeWidth="1.8" strokeLinecap="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="#E8692C" stroke="none">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
-
-/* Feature icons */
-const FleetIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E8692C" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1" y="3" width="14" height="12" rx="2"/>
-    <path d="M15 7h4l3 3v5h-7V7z"/>
-    <circle cx="5" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>
-  </svg>
-);
-const PartsIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E8692C" strokeWidth="1.7" strokeLinecap="round">
-    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
-  </svg>
-);
-const MaintIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E8692C" strokeWidth="1.7" strokeLinecap="round">
-    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-  </svg>
-);
-const AIIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E8692C" strokeWidth="1.7" strokeLinecap="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
-  </svg>
-);
-
-const FEATURES = [
-  { Icon: FleetIcon, title: "Fleet Intelligence",     desc: "Real-time visibility across all machines & sites." },
-  { Icon: PartsIcon, title: "Parts Marketplace",      desc: "OEM & aftermarket parts with smart inventory alerts." },
-  { Icon: MaintIcon, title: "Predictive Maintenance", desc: "AI risk scores prevent breakdowns before they happen." },
-  { Icon: AIIcon,    title: "AI Copilot",             desc: "Configure equipment and plan operations instantly." },
-];
-
-/* ─── STABLE COMPONENTS (defined outside to prevent recreation) ───────────────── */
-
-function FL({ ch }: { ch: React.ReactNode }) {
-  return <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", color: C.muted, textTransform: "uppercase" as const }}>{ch}</span>;
-}
-
-// Stable Input component
-const Input = memo(({ 
-  type = "text", 
-  value, 
-  onChange, 
-  placeholder, 
-  disabled, 
-  right, 
-  compact 
-}: {
-  type?: string; 
-  value: string; 
-  onChange: (v: string) => void;
-  placeholder?: string; 
-  disabled?: boolean; 
-  right?: React.ReactNode; 
-  compact?: boolean;
-}) => {
-  const [foc, setFoc] = useState(false);
-  
-  // Stable handler using useCallback
-  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
-  }, [onChange]);
-  
-  return (
-    <div style={{ position: "relative" }}>
-      <input 
-        type={type} 
-        value={value} 
-        disabled={disabled}
-        onChange={handleChange}
-        placeholder={placeholder}
-        onFocus={() => setFoc(true)} 
-        onBlur={() => setFoc(false)}
-        style={{
-          width: "100%", 
-          height: compact ? 40 : 44,
-          padding: right ? "0 42px 0 14px" : "0 14px",
-          borderRadius: 9, 
-          border: `1.5px solid ${foc ? C.borderFoc : C.border}`,
-          background: foc ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
-          color: disabled ? C.muted : C.text, 
-          fontSize: 13.5,
-          fontFamily: "var(--font-body), sans-serif", 
-          outline: "none",
-          transition: "border-color .15s, box-shadow .15s",
-          boxShadow: foc ? `0 0 0 3px ${C.orangeDim}` : "none",
-        }}
-      />
-      {right && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}>{right}</div>}
-    </div>
-  );
-});
-
-Input.displayName = "Input";
-
-// Stable OTPRow component
-const OTPRow = memo(({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-  const digits = value.split("").concat(Array(6).fill("")).slice(0, 6);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, i: number) => {
-    if (/^\d$/.test(e.key)) {
-      e.preventDefault();
-      const newValue = digits.map((d, j) => j === i ? e.key : d).join("");
-      onChange(newValue);
-      if (i < 5 && inputRefs.current[i + 1]) {
-        inputRefs.current[i + 1]?.focus();
-      }
-    } else if (e.key === "Backspace") {
-      e.preventDefault();
-      const newValue = digits.map((d, j) => j === i ? "" : d).join("");
-      onChange(newValue);
-      if (i > 0 && inputRefs.current[i - 1]) {
-        inputRefs.current[i - 1]?.focus();
-      }
-    }
-  }, [digits, onChange]);
-  
-  return (
-    <div style={{ display: "flex", gap: 7, justifyContent: "center", width: "100%" }}>
-      {digits.map((d, i) => (
-        <input 
-          key={i} 
-          ref={el => { inputRefs.current[i] = el; }}
-          type="text" 
-          inputMode="numeric" 
-          maxLength={1}
-          value={d} 
-          onChange={() => {}} 
-          onKeyDown={(e) => handleKeyDown(e, i)}
-          style={{
-            width: 42, height: 50, textAlign: "center", borderRadius: 9,
-            border: `2px solid ${d ? C.orange : C.border}`,
-            background: d ? C.orangeDim : "rgba(255,255,255,0.02)",
-            color: C.text, fontSize: 20, fontWeight: 800,
-            fontFamily: "var(--font-body), sans-serif", outline: "none", transition: "all .15s",
-          }}
-          onFocus={e => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 3px ${C.orangeDim}`; }}
-          onBlur={e => { if (!d) { e.target.style.borderColor = C.border; e.target.style.boxShadow = "none"; } }}
-        />
-      ))}
-    </div>
-  );
-});
-
-OTPRow.displayName = "OTPRow";
-
-function PBtn({ children, type = "button", loading, onClick }: {
-  children: React.ReactNode; 
-  type?: "button"|"submit"; 
-  loading?: boolean; 
-  onClick?: () => void;
-}) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button 
-      type={type} 
-      onClick={onClick} 
-      disabled={loading}
-      onMouseEnter={() => setHov(true)} 
-      onMouseLeave={() => setHov(false)}
-      style={{
-        width: "100%", 
-        height: 44, 
-        borderRadius: 10, 
-        border: "none",
-        background: loading ? `${C.orange}80` : hov ? C.orangeDk : C.orange,
-        color: "#fff", 
-        fontSize: 13.5, 
-        fontWeight: 700, 
-        fontFamily: "var(--font-body), sans-serif",
-        cursor: loading ? "not-allowed" : "pointer",
-        display: "flex", 
-        alignItems: "center", 
-        justifyContent: "center", 
-        gap: 8,
-        transition: "background .15s, transform .15s, box-shadow .15s",
-        boxShadow: hov && !loading ? `0 6px 22px ${C.orangeGlow}` : `0 3px 10px rgba(232,105,44,0.2)`,
-        transform: hov && !loading ? "translateY(-1px)" : "none",
-      }}>
-      {loading && <SpinIcon />}{children}
-    </button>
-  );
-}
-
-function SBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button 
-      type="button" 
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)} 
-      onMouseLeave={() => setHov(false)}
-      style={{
-        width: "100%", 
-        height: 40, 
-        borderRadius: 10,
-        border: `1px solid ${hov ? "rgba(232,105,44,0.35)" : C.border}`,
-        background: hov ? C.orangeDim : "rgba(255,255,255,0.02)",
-        color: hov ? C.orange : C.muted, 
-        fontSize: 13, 
-        fontWeight: 600,
-        fontFamily: "var(--font-body), sans-serif", 
-        cursor: "pointer", 
-        transition: "all .15s",
-      }}>
-      {children}
-    </button>
-  );
-}
-
-function Err({ msg }: { msg: string }) {
-  if (!msg) return null;
-  return (
-    <div style={{ 
-      padding: "8px 12px", 
-      borderRadius: 8, 
-      marginBottom: 8,
-      background: "rgba(239,68,68,0.07)", 
-      border: "1px solid rgba(239,68,68,0.22)",
-      fontSize: 12, 
-      color: "#FCA5A5", 
-      lineHeight: 1.5 
-    }}>
-      {msg}
-    </div>
-  );
-}
-
-function EyeBtn({ show, toggle }: { show: boolean; toggle: () => void }) {
-  return (
-    <button 
-      type="button" 
-      onClick={toggle}
-      style={{ 
-        background: "none", 
-        border: "none", 
-        cursor: "pointer", 
-        color: C.muted, 
-        padding: 0, 
-        display: "flex" 
-      }}>
-      <EyeIcon off={show} />
-    </button>
-  );
-}
-
-function Dots({ cur, total }: { cur: number; total: number }) {
-  return (
-    <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 12 }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} style={{ 
-          height: 3, 
-          borderRadius: 99, 
-          width: i === cur ? 20 : 6,
-          background: i <= cur ? C.orange : C.border, 
-          transition: "all .3s" 
-        }} />
-      ))}
-    </div>
-  );
-}
-
-function Div({ label }: { label: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0" }}>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-      <span style={{ fontSize: 11, color: C.faint }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-    </div>
-  );
-}
-
-// Animated wrapper without any key
-const AnimatedWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div style={{ animation: "auth-slide .26s cubic-bezier(0.16,1,0.3,1) both" }}>
-    {children}
-  </div>
-);
-
-/* ─── LEFT BRAND PANEL ───────────────────────────────── */
-function BrandPanel() {
-  const [fi, setFi] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setFi(p => (p + 1) % FEATURES.length), 3000);
-    return () => clearInterval(t);
-  }, []);
-  const { Icon, title, desc } = FEATURES[fi];
-
-  return (
-    <div style={{
-      width: "100%", 
-      height: "100%", 
-      position: "relative", 
-      overflow: "hidden",
-      background: "linear-gradient(150deg,#0C1120 0%,#0F1928 55%,#0D1E32 100%)",
-      display: "flex", 
-      flexDirection: "column",
-      padding: "clamp(24px,3.5vh,44px) clamp(24px,3.5vw,48px)",
-    }}>
-      <div style={{ 
-        position:"absolute",
-        inset:0,
-        opacity:0.3,
-        backgroundImage:"linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)",
-        backgroundSize:"36px 36px",
-        pointerEvents:"none" 
-      }} />
-      <div style={{ 
-        position:"absolute",
-        top:"20%",
-        left:"0%",
-        width:"70%",
-        height:"50%",
-        background:`radial-gradient(ellipse,rgba(232,105,44,0.22) 0%,transparent 65%)`,
-        filter:"blur(50px)",
-        pointerEvents:"none" 
-      }} />
-      <div style={{ 
-        position:"absolute",
-        bottom:"0%",
-        right:"-10%",
-        width:"50%",
-        height:"40%",
-        background:"radial-gradient(ellipse,rgba(37,99,235,0.12) 0%,transparent 65%)",
-        filter:"blur(40px)",
-        pointerEvents:"none" 
-      }} />
-
-      <div style={{ 
-        position:"relative",
-        display:"flex",
-        flexDirection:"column",
-        height:"100%",
-        justifyContent:"space-between" 
-      }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ 
-            width:34,
-            height:34,
-            borderRadius:9,
-            flexShrink:0,
-            background:`linear-gradient(135deg,${C.orange},${C.orangeDk})`,
-            boxShadow:`0 0 16px ${C.orangeGlow}`,
-            display:"flex",
-            alignItems:"center",
-            justifyContent:"center" 
-          }}>
-            <Logo />
-          </div>
-          <span style={{ 
-            fontSize:15,
-            fontWeight:800,
-            color:C.text,
-            letterSpacing:"-0.02em",
-            fontFamily:"var(--font-heading),sans-serif" 
-          }}>
-            Stratum<span style={{ color:C.orange }}> IQ</span>
-          </span>
-        </div>
-
-        <div>
-          <h1 style={{ 
-            fontSize:"clamp(22px,2.8vw,38px)",
-            fontWeight:800,
-            color:C.text,
-            lineHeight:1.08,
-            letterSpacing:"-0.04em",
-            margin:"0 0 clamp(8px,1.2vh,14px)",
-            fontFamily:"var(--font-heading),sans-serif" 
-          }}>
-            Run your quarry<br />
-            <span style={{ 
-              background:`linear-gradient(88deg,${C.orange},#F5A133)`,
-              WebkitBackgroundClip:"text",
-              WebkitTextFillColor:"transparent",
-              backgroundClip:"text" 
-            }}>
-              smarter, not harder.
-            </span>
-          </h1>
-          <p style={{ 
-            fontSize:"clamp(12px,1vw,13.5px)",
-            color:C.muted,
-            lineHeight:1.7,
-            maxWidth:300,
-            margin:0 
-          }}>
-            Fleet, parts, maintenance, and AI — in one unified workspace for heavy equipment operators.
-          </p>
-        </div>
-
-        <div style={{ 
-          background:"rgba(255,255,255,0.04)",
-          backdropFilter:"blur(10px)",
-          border:`1px solid ${C.border}`,
-          borderRadius:12,
-          padding:"clamp(12px,1.5vh,16px) 14px",
-          boxShadow:"0 8px 28px rgba(0,0,0,0.25)" 
-        }}>
-          <div style={{ display:"flex", gap:11, alignItems:"flex-start" }}>
-            <div style={{ 
-              width:34,
-              height:34,
-              borderRadius:8,
-              flexShrink:0,
-              background:"rgba(232,105,44,0.12)",
-              border:"1px solid rgba(232,105,44,0.22)",
-              display:"flex",
-              alignItems:"center",
-              justifyContent:"center" 
-            }}>
-              <Icon />
-            </div>
-            <div>
-              <div style={{ fontSize:12.5, fontWeight:700, color:C.text, marginBottom:2 }}>{title}</div>
-              <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.55 }}>{desc}</div>
-            </div>
-          </div>
-          <div style={{ display:"flex", gap:4, marginTop:10 }}>
-            {FEATURES.map((_,i) => (
-              <button 
-                key={i} 
-                onClick={() => setFi(i)} 
-                style={{ 
-                  height:3,
-                  flex:1,
-                  borderRadius:99,
-                  border:"none",
-                  cursor:"pointer",
-                  background:i===fi ? C.orange : C.border,
-                  transition:"background .3s" 
-                }} 
-              />
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display:"flex", gap:8 }}>
-          {[["2,400+","Machines"],["98.2%","Uptime"],["47%","Less Downtime"]].map(([v,l],i) => (
-            <div key={i} style={{ 
-              flex:1,
-              background:"rgba(255,255,255,0.025)",
-              borderRadius:9,
-              border:`1px solid ${C.border}`,
-              padding:"clamp(8px,1vh,12px) 6px",
-              textAlign:"center" 
-            }}>
-              <div style={{ 
-                fontSize:"clamp(13px,1.3vw,17px)",
-                fontWeight:800,
-                color:C.orange,
-                letterSpacing:"-0.03em",
-                fontFamily:"var(--font-heading),sans-serif",
-                lineHeight:1 
-              }}>{v}</div>
-              <div style={{ 
-                fontSize:9.5,
-                color:C.faint,
-                marginTop:3,
-                fontWeight:600,
-                letterSpacing:"0.04em" 
-              }}>{l}</div>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <div style={{ display:"flex", gap:3, alignItems:"center", marginBottom:5 }}>
-            {[...Array(5)].map((_,i) => <StarIcon key={i} />)}
-            <span style={{ fontSize:11, color:C.muted, marginLeft:5 }}>Trusted by 800+ operators</span>
-          </div>
-          <div style={{ display:"flex", gap:10, flexWrap:"wrap" as const }}>
-            {["🔒 SOC 2","⚡ 99.9% SLA","🌏 Pan-India"].map(s => (
-              <span key={s} style={{ fontSize:10.5, color:C.faint }}>{s}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── AUTH FORMS ─────────────────────────────────────── */
-type Mode = "login"|"register";
-type Step = "login"|"register"|"verify-email"|"verify-phone"|"done";
+const REMEMBER_KEY = "auth_remember_email";
 
 function AuthForms() {
-  const router       = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const init         = (searchParams?.get("mode") as Mode) ?? "login";
+  const init = (searchParams?.get("mode") as Mode) ?? "login";
 
-  const [mode,    setMode]   = useState<Mode>(init);
-  const [step,    setStep]   = useState<Step>(init);
-  const [loading, setLoad]   = useState(false);
-  const [error,   setError]  = useState("");
-  const [userId,  setUID]    = useState<number|null>(null);
+  const [mode, setMode] = useState<Mode>(init);
+  const [step, setStep] = useState<Step>(init === "register" ? "register-1" : "login");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
 
-  const [lEmail, setLE] = useState("");
-  const [lPw,    setLP] = useState("");
-  const [showLP, setSLP] = useState(false);
+  const [lEmail, setLEmail] = useState("");
+  const [lPw, setLPw] = useState("");
+  const [showLPw, setShowLPw] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loginErrors, setLoginErrors] = useState<{ email?: string; password?: string }>({});
 
-  const [rFirst, setRF] = useState("");
-  const [rLast,  setRL] = useState("");
-  const [rEmail, setRE] = useState("");
-  const [rPw,    setRP] = useState("");
-  const [rPhone, setPH] = useState("");
-  const [showRP, setSRP] = useState(false);
+  const [rFirst, setRFirst] = useState("");
+  const [rLast, setRLast] = useState("");
+  const [rEmail, setREmail] = useState("");
+  const [rPw, setRPw] = useState("");
+  const [rConfirm, setRConfirm] = useState("");
+  const [rPhone, setRPhone] = useState("");
+  const [showRPw, setShowRPw] = useState(false);
+  const [regErrors, setRegErrors] = useState<Record<string, string>>({});
 
-  const [eOTP, setEOTP] = useState("");
-  const [pOTP, setPOTP] = useState("");
+  const [eOtp, setEOtp] = useState("");
+  const [pOtp, setPOtp] = useState("");
 
-  const nav = useCallback((s: Step) => { 
-    setError(""); 
-    setStep(s); 
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    if (saved) { setLEmail(saved); setRemember(true); }
   }, []);
-  
-  const sw = useCallback((m: Mode) => { 
-    if (mode===m) return; 
-    setError(""); 
-    setMode(m); 
-    nav(m); 
-  }, [mode, nav]);
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setStep(m === "register" ? "register-1" : "login");
+    setRegErrors({});
+    setLoginErrors({});
+  };
+
+  const validateLogin = () => {
+    const errs: typeof loginErrors = {};
+    if (!lEmail.trim() || !isValidEmail(lEmail)) errs.email = "Enter a valid email address";
+    if (!lPw) errs.password = "Password is required";
+    setLoginErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateRegStep = (s: Step) => {
+    const errs: Record<string, string> = {};
+    if (s === "register-1") {
+      if (!rFirst.trim()) errs.firstName = "First name is required";
+      if (!rLast.trim()) errs.lastName = "Last name is required";
+    }
+    if (s === "register-2") {
+      if (!rEmail.trim() || !isValidEmail(rEmail)) errs.email = "Enter a valid email address";
+      const pwCheck = checkPassword(rPw);
+      if (!pwCheck.minLength) errs.password = "Minimum 8 characters required";
+      else if (!pwCheck.uppercase) errs.password = "Include at least one uppercase letter";
+      else if (!pwCheck.lowercase) errs.password = "Include at least one lowercase letter";
+      else if (!pwCheck.number) errs.password = "Include at least one number";
+      else if (!pwCheck.special) errs.password = "Include at least one special character";
+      if (rPw !== rConfirm) errs.confirm = "Passwords do not match";
+    }
+    if (s === "register-3") {
+      const phoneErr = validateIndianPhone(rPhone);
+      if (phoneErr) errs.phone = phoneErr;
+    }
+    setRegErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const doLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    setError(""); 
-    setLoad(true);
+    e.preventDefault();
+    if (!validateLogin()) return;
+    setLoading(true);
     try {
       const r = await authAPI.login({ email: lEmail.trim(), password: lPw });
-      if (r.accessToken) { 
-        localStorage.setItem("token", r.accessToken); 
-        router.push("/dashboard"); 
+      if (r.accessToken) {
+        localStorage.setItem("token", r.accessToken);
+        if (remember) localStorage.setItem(REMEMBER_KEY, lEmail.trim());
+        else localStorage.removeItem(REMEMBER_KEY);
+        setSuccess(true);
+        notify.success("Signed in successfully");
+        const profile = await fetch(`${API_URL}/dashboard/profile`, {
+          headers: { Authorization: `Bearer ${r.accessToken}` },
+          credentials: "include",
+        }).then((res) => res.json()).catch(() => null);
+        router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER"));
       }
-    } catch (err: unknown) { 
-      setError(err instanceof Error ? err.message : "Login failed."); 
-    } finally { 
-      setLoad(false); 
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const doRegister = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    setError("");
-    if (rPw.length < 8)               return setError("Password: min 8 characters.");
-    if (!/[A-Z]/.test(rPw))           return setError("Password: at least one uppercase.");
-    if (!/[0-9]/.test(rPw))           return setError("Password: at least one number.");
-    if (!/[!@#$%^&*]/.test(rPw))      return setError("Password: at least one special char.");
-    if (!/^\+?[0-9]{10,15}$/.test(rPhone)) return setError("Phone: 10–15 digits, with optional +");
-    setLoad(true);
+  const doRegister = async () => {
+    if (!validateRegStep("register-3")) return;
+    setLoading(true);
     try {
-      const r = await authAPI.register({ 
-        firstName: rFirst, 
-        lastName: rLast, 
-        email: rEmail, 
-        password: rPw, 
-        phone: rPhone 
+      const r = await authAPI.register({
+        firstName: rFirst.trim(),
+        lastName: rLast.trim(),
+        email: rEmail.trim(),
+        password: rPw,
+        phone: normalizeIndianPhone(rPhone),
       });
-      if (r.userId) { 
-        setUID(r.userId); 
-        nav("verify-email"); 
+      if (r.userId) {
+        setUserId(r.userId);
+        setStep("verify-email");
+        notify.success("Account created. Check your email for the verification code.");
       }
-    } catch (err: unknown) { 
-      setError(err instanceof Error ? err.message : "Registration failed."); 
-    } finally { 
-      setLoad(false); 
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Registration failed";
+      if (/email already/i.test(msg)) setRegErrors((prev) => ({ ...prev, email: "This email is already registered" }));
+      notify.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   const doVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || eOTP.length < 6) return setError("Enter the full 6-digit code.");
-    setError(""); 
-    setLoad(true);
+    if (!userId || eOtp.length < 6) { notify.error("Enter the full 6-digit code"); return; }
+    setLoading(true);
     try {
-      await authAPI.verifyEmailOTP({ userId, otp: eOTP });
-      await authAPI.sendPhoneOTP({ userId, phone: rPhone });
-      nav("verify-phone");
-    } catch (err: unknown) { 
-      setError(err instanceof Error ? err.message : "Verification failed."); 
-    } finally { 
-      setLoad(false); 
+      await authAPI.verifyEmailOTP({ userId, otp: eOtp });
+      await authAPI.sendPhoneOTP({ userId, phone: normalizeIndianPhone(rPhone) });
+      setStep("verify-phone");
+      notify.success("Email verified");
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   const doVerifyPhone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || pOTP.length < 6) return setError("Enter the full 6-digit code.");
-    setError(""); 
-    setLoad(true);
+    if (!userId || pOtp.length < 6) { notify.error("Enter the full 6-digit code"); return; }
+    setLoading(true);
     try {
-      const r = await authAPI.verifyPhoneOTP({ userId, otp: pOTP });
+      const r = await authAPI.verifyPhoneOTP({ userId, otp: pOtp });
       if (r.accessToken) {
         localStorage.setItem("token", r.accessToken);
-        nav("done");
-        setTimeout(() => router.push("/dashboard"), 900);
+        setStep("done");
+        notify.success("Account activated");
+        const profile = await fetch(`${API_URL}/dashboard/profile`, {
+          headers: { Authorization: `Bearer ${r.accessToken}` },
+          credentials: "include",
+        }).then((res) => res.json()).catch(() => null);
+        setTimeout(() => router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER")), 800);
       }
-    } catch (err: unknown) { 
-      setError(err instanceof Error ? err.message : "Verification failed."); 
-    } finally { 
-      setLoad(false); 
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Render different forms based on step
-  if (step === "login") {
-    return (
-      <AnimatedWrapper>
-        <h2 style={{ 
-          fontSize:"clamp(19px,1.9vw,25px)",
-          fontWeight:800,
-          color:C.text,
-          letterSpacing:"-0.04em",
-          margin:"0 0 3px",
-          fontFamily:"var(--font-heading),sans-serif" 
-        }}>
-          Welcome back.
-        </h2>
-        <p style={{ fontSize:12.5, color:C.muted, margin:"0 0 14px" }}>Sign in to your workspace</p>
-        <Err msg={error} />
-        <form onSubmit={doLogin} style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-            <FL ch="Email address" />
-            <Input 
-              type="email" 
-              value={lEmail} 
-              onChange={setLE} 
-              placeholder="you@company.com" 
-              compact 
-            />
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <FL ch="Password" />
-              <button 
-                type="button" 
-                style={{ 
-                  background:"none",
-                  border:"none",
-                  fontSize:11,
-                  color:C.orange,
-                  cursor:"pointer",
-                  fontFamily:"inherit",
-                  padding:0 
-                }}>
-                Forgot password?
-              </button>
+  const pwStr = passwordStrength(rPw);
+  const pwCheck = checkPassword(rPw);
+  const regStepIndex = step.startsWith("register") ? parseInt(step.split("-")[1] ?? "1") - 1 : 0;
+
+  const renderContent = () => {
+    if (step === "login") {
+      return (
+        <motion.div key="login" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+          <h2>Welcome back</h2>
+          <p className="auth-card-sub">Sign in to your StratumIQ workspace</p>
+          <form onSubmit={doLogin}>
+            <div className="auth-field">
+              <label className="auth-label">Email address</label>
+              <input className={`auth-input ${loginErrors.email ? "auth-input--error" : ""}`} type="email" value={lEmail} onChange={(e) => setLEmail(e.target.value)} placeholder="you@company.com" />
+              {loginErrors.email && <p className="auth-field-error">{loginErrors.email}</p>}
             </div>
-            <Input 
-              type={showLP ? "text" : "password"} 
-              value={lPw} 
-              onChange={setLP}
-              placeholder="Your password" 
-              compact
-              right={<EyeBtn show={showLP} toggle={() => setSLP(p => !p)} />} 
-            />
-          </div>
-          <div style={{ marginTop:2 }}>
-            <PBtn type="submit" loading={loading}>
-              {loading ? "Signing in…" : "Sign In →"}
-            </PBtn>
-          </div>
-        </form>
-        <Div label="New to StratumIQ?" />
-        <SBtn onClick={() => sw("register")}>Create a free account →</SBtn>
-      </AnimatedWrapper>
-    );
-  }
-
-  if (step === "register") {
-    return (
-      <AnimatedWrapper>
-        <h2 style={{ 
-          fontSize:"clamp(19px,1.9vw,25px)",
-          fontWeight:800,
-          color:C.text,
-          letterSpacing:"-0.04em",
-          margin:"0 0 3px",
-          fontFamily:"var(--font-heading),sans-serif" 
-        }}>
-          Create account.
-        </h2>
-        <p style={{ fontSize:12.5, color:C.muted, margin:"0 0 10px" }}>
-          Join operators running on StratumIQ
-        </p>
-        <Dots cur={0} total={3} />
-        <Err msg={error} />
-        <form onSubmit={doRegister} style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-              <FL ch="First name" />
-              <Input value={rFirst} onChange={setRF} placeholder="Ramesh" compact />
+            <div className="auth-field">
+              <div className="auth-label-row">
+                <label className="auth-label">Password</label>
+                <button type="button" className="auth-link" onClick={() => notify.info("Password reset will be available soon.")}>Forgot password?</button>
+              </div>
+              <div className="auth-input-wrap">
+                <input className={`auth-input has-toggle ${loginErrors.password ? "auth-input--error" : ""}`} type={showLPw ? "text" : "password"} value={lPw} onChange={(e) => setLPw(e.target.value)} placeholder="Your password" />
+                <button type="button" className="auth-eye" onClick={() => setShowLPw((p) => !p)} aria-label="Toggle password">{showLPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+              </div>
+              {loginErrors.password && <p className="auth-field-error">{loginErrors.password}</p>}
             </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-              <FL ch="Last name" />
-              <Input value={rLast} onChange={setRL} placeholder="Kumar" compact />
+            <div className="auth-row">
+              <label className="auth-check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember me</label>
             </div>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-            <FL ch="Email address" />
-            <Input type="email" value={rEmail} onChange={setRE} placeholder="you@company.com" compact />
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-            <FL ch="Password" />
-            <Input 
-              type={showRP ? "text" : "password"} 
-              value={rPw} 
-              onChange={setRP}
-              placeholder="8+ chars · A–Z · 0–9 · symbol" 
-              compact              right={<EyeBtn show={showRP} toggle={() => setSRP(p => !p)} />} 
-            />
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-            <FL ch="Phone number" />
-            <Input type="tel" value={rPhone} onChange={setPH} placeholder="+91 98765 43210" compact />
-          </div>
-          <div style={{ marginTop:2 }}>
-            <PBtn type="submit" loading={loading}>
-              {loading ? "Creating account…" : "Create Account →"}
-            </PBtn>
-          </div>
-        </form>
-        <Div label="Already have an account?" />
-        <SBtn onClick={() => sw("login")}>Sign in instead</SBtn>
-      </AnimatedWrapper>
-    );
-  }
+            <button type="submit" className={`auth-btn ${success ? "auth-btn--success" : ""}`} disabled={loading}>
+              {loading ? <Loader2 size={16} className="auth-spin" /> : success ? <CheckCircle2 size={16} /> : null}
+              {loading ? "Signing in…" : success ? "Success" : "Sign In"}
+            </button>
+          </form>
+          <div className="auth-divider">New to StratumIQ?</div>
+          <button type="button" className="auth-btn-secondary" onClick={() => switchMode("register")}>Create a free account</button>
+        </motion.div>
+      );
+    }
 
-  if (step === "verify-email") {
+    if (step.startsWith("register")) {
+      return (
+        <motion.div key={step} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+          <h2>Create account</h2>
+          <p className="auth-card-sub">Step {regStepIndex + 1} of 3</p>
+          <div className="auth-progress">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`auth-progress-seg ${i < regStepIndex ? "done" : ""} ${i === regStepIndex ? "active" : ""}`} />
+            ))}
+          </div>
+
+          {step === "register-1" && (
+            <>
+              <div className="auth-grid-2">
+                <div className="auth-field">
+                  <label className="auth-label">First name</label>
+                  <input className={`auth-input ${regErrors.firstName ? "auth-input--error" : ""}`} value={rFirst} onChange={(e) => setRFirst(e.target.value)} placeholder="Ramesh" />
+                  {regErrors.firstName && <p className="auth-field-error">{regErrors.firstName}</p>}
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label">Last name</label>
+                  <input className={`auth-input ${regErrors.lastName ? "auth-input--error" : ""}`} value={rLast} onChange={(e) => setRLast(e.target.value)} placeholder="Kumar" />
+                  {regErrors.lastName && <p className="auth-field-error">{regErrors.lastName}</p>}
+                </div>
+              </div>
+              <button type="button" className="auth-btn" onClick={() => validateRegStep("register-1") && setStep("register-2")}>Continue</button>
+            </>
+          )}
+
+          {step === "register-2" && (
+            <>
+              <div className="auth-field">
+                <label className="auth-label">Email address</label>
+                <input className={`auth-input ${regErrors.email ? "auth-input--error" : ""}`} type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} placeholder="you@company.com" />
+                {regErrors.email && <p className="auth-field-error">{regErrors.email}</p>}
+              </div>
+              <div className="auth-field">
+                <label className="auth-label">Password</label>
+                <div className="auth-input-wrap">
+                  <input className={`auth-input has-toggle ${regErrors.password ? "auth-input--error" : ""}`} type={showRPw ? "text" : "password"} value={rPw} onChange={(e) => setRPw(e.target.value)} placeholder="Create a strong password" />
+                  <button type="button" className="auth-eye" onClick={() => setShowRPw((p) => !p)}>{showRPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                </div>
+                {rPw && (
+                  <div className="auth-pw-meter">
+                    <div className="auth-strength">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="auth-strength-bar" style={{ background: i <= pwStr.score ? pwStr.color : undefined }} />
+                      ))}
+                    </div>
+                    <p className="auth-field-hint" style={{ color: pwStr.color }}>Password strength: {pwStr.label}</p>
+                    <ul className="auth-pw-rules">
+                      {[
+                        { ok: pwCheck.minLength, label: "At least 8 characters" },
+                        { ok: pwCheck.uppercase, label: "One uppercase letter" },
+                        { ok: pwCheck.lowercase, label: "One lowercase letter" },
+                        { ok: pwCheck.number, label: "One number" },
+                        { ok: pwCheck.special, label: "One special character" },
+                      ].map(({ ok, label }) => (
+                        <li key={label} className={ok ? "auth-pw-rule--ok" : ""}>{label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {regErrors.password && <p className="auth-field-error">{regErrors.password}</p>}
+              </div>
+              <div className="auth-field">
+                <label className="auth-label">Confirm password</label>
+                <input className={`auth-input ${regErrors.confirm ? "auth-input--error" : ""}`} type="password" value={rConfirm} onChange={(e) => setRConfirm(e.target.value)} placeholder="Repeat password" />
+                {regErrors.confirm && <p className="auth-field-error">{regErrors.confirm}</p>}
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button type="button" className="auth-btn-secondary" style={{ flex: 1 }} onClick={() => setStep("register-1")}>Back</button>
+                <button type="button" className="auth-btn" style={{ flex: 2 }} onClick={() => validateRegStep("register-2") && setStep("register-3")}>Continue</button>
+              </div>
+            </>
+          )}
+
+          {step === "register-3" && (
+            <>
+              <div className="auth-field">
+                <label className="auth-label">Phone number</label>
+                <input
+                  className={`auth-input ${regErrors.phone ? "auth-input--error" : ""}`}
+                  type="tel"
+                  inputMode="numeric"
+                  value={rPhone}
+                  onChange={(e) => setRPhone(e.target.value.replace(/[^\d+\s]/g, ""))}
+                  placeholder="9876543210"
+                  maxLength={14}
+                />
+                {regErrors.phone && <p className="auth-field-error">{regErrors.phone}</p>}
+                <p className="auth-field-hint">India: 10 digits only · Used for OTP verification</p>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button type="button" className="auth-btn-secondary" style={{ flex: 1 }} onClick={() => setStep("register-2")}>Back</button>
+                <button type="button" className="auth-btn" style={{ flex: 2 }} disabled={loading} onClick={doRegister}>
+                  {loading ? <Loader2 size={16} className="auth-spin" /> : null}
+                  {loading ? "Creating…" : "Create Account"}
+                </button>
+              </div>
+            </>
+          )}
+
+          <div className="auth-divider">Already have an account?</div>
+          <button type="button" className="auth-btn-secondary" onClick={() => switchMode("login")}>Sign in instead</button>
+        </motion.div>
+      );
+    }
+
+    if (step === "verify-email" || step === "verify-phone") {
+      const isEmail = step === "verify-email";
+      return (
+        <motion.div key={step} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+          <h2>{isEmail ? "Verify your email" : "Verify your phone"}</h2>
+          <p className="auth-card-sub">Code sent to <strong>{isEmail ? rEmail : rPhone}</strong></p>
+          <form onSubmit={isEmail ? doVerifyEmail : doVerifyPhone}>
+            <OtpInput value={isEmail ? eOtp : pOtp} onChange={isEmail ? setEOtp : setPOtp} length={6} />
+            <button type="submit" className="auth-btn" disabled={loading}>
+              {loading ? <Loader2 size={16} className="auth-spin" /> : null}
+              {loading ? "Verifying…" : isEmail ? "Verify Email" : "Activate Account"}
+            </button>
+          </form>
+        </motion.div>
+      );
+    }
+
     return (
-      <AnimatedWrapper>
-        <div style={{ textAlign:"center", marginBottom:12 }}>
-          <h2 style={{ 
-            fontSize:"clamp(18px,1.8vw,23px)",
-            fontWeight:800,
-            color:C.text,
-            letterSpacing:"-0.04em",
-            margin:"0 0 6px",
-            fontFamily:"var(--font-heading),sans-serif" 
-          }}>
-            Check your email.
-          </h2>
-          <Dots cur={1} total={3} />
-          <p style={{ fontSize:12.5, color:C.muted, lineHeight:1.6, margin:"0 0 16px" }}>
-            Code sent to <strong style={{ color:C.text }}>{rEmail}</strong>
-          </p>
-        </div>
-        <Err msg={error} />
-        <form onSubmit={doVerifyEmail} style={{ display:"flex", flexDirection:"column", gap:14, alignItems:"center" }}>
-          <OTPRow value={eOTP} onChange={setEOTP} />
-          <PBtn type="submit" loading={loading}>
-            {loading ? "Verifying…" : "Verify Email →"}
-          </PBtn>
-          <button 
-            type="button" 
-            onClick={() => { setEOTP(""); setError(""); }}
-            style={{ 
-              background:"none",
-              border:"none",
-              fontSize:12,
-              color:C.muted,
-              cursor:"pointer",
-              fontFamily:"inherit" 
-            }}>
-            Resend code
-          </button>
-        </form>
-      </AnimatedWrapper>
+      <motion.div key="done" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="auth-card-sub" style={{ textAlign: "center", padding: "24px 0" }}>
+        <CheckCircle2 size={48} color="#16A34A" style={{ marginBottom: 12 }} />
+        <h2 style={{ marginBottom: 8 }}>You&apos;re all set</h2>
+        <p>Setting up your workspace…</p>
+        <Loader2 size={20} className="auth-spin" style={{ marginTop: 16 }} />
+      </motion.div>
     );
-  }
+  };
 
-  if (step === "verify-phone") {
-    return (
-      <AnimatedWrapper>
-        <div style={{ textAlign:"center", marginBottom:12 }}>
-          <h2 style={{ 
-            fontSize:"clamp(18px,1.8vw,23px)",
-            fontWeight:800,
-            color:C.text,
-            letterSpacing:"-0.04em",
-            margin:"0 0 6px",
-            fontFamily:"var(--font-heading),sans-serif" 
-          }}>
-            Verify your phone.
-          </h2>
-          <Dots cur={2} total={3} />
-          <p style={{ fontSize:12.5, color:C.muted, lineHeight:1.6, margin:"0 0 16px" }}>
-            Code sent to <strong style={{ color:C.text }}>{rPhone}</strong>
-          </p>
-        </div>
-        <Err msg={error} />
-        <form onSubmit={doVerifyPhone} style={{ display:"flex", flexDirection:"column", gap:14, alignItems:"center" }}>
-          <OTPRow value={pOTP} onChange={setPOTP} />
-          <PBtn type="submit" loading={loading}>
-            {loading ? "Activating…" : "Activate Account →"}
-          </PBtn>
-          <button 
-            type="button"
-            onClick={() => userId && authAPI.sendPhoneOTP({ userId, phone: rPhone }).catch(()=>{})}
-            style={{ 
-              background:"none",
-              border:"none",
-              fontSize:12,
-              color:C.muted,
-              cursor:"pointer",
-              fontFamily:"inherit" 
-            }}>
-            Resend code
-          </button>
-        </form>
-      </AnimatedWrapper>
-    );
-  }
-
-  // done step
   return (
-    <AnimatedWrapper>
-      <div style={{ textAlign:"center", padding:"16px 0" }}>
-        <div style={{ fontSize:44, marginBottom:10 }}>🎉</div>
-        <h2 style={{ 
-          fontSize:22,
-          fontWeight:800,
-          color:C.text,
-          letterSpacing:"-0.04em",
-          margin:"0 0 6px",
-          fontFamily:"var(--font-heading),sans-serif" 
-        }}>
-          You're in!
-        </h2>
-        <p style={{ fontSize:13, color:C.muted, marginBottom:16 }}>Setting up your workspace…</p>
-        <div style={{ display:"flex", justifyContent:"center" }}><SpinIcon /></div>
-      </div>
-    </AnimatedWrapper>
+    <div className="auth-card">
+      <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+    </div>
   );
 }
 
-/* ─── PAGE ROOT ──────────────────────────────────────── */
 export default function AuthPage() {
   return (
     <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: hidden; }
-        @keyframes auth-spin  { to { transform: rotate(360deg); } }
-        @keyframes auth-slide {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @media (max-width: 820px) {
-          .auth-brand { display: none !important; }
-          .auth-right { overflow-y: auto !important; align-items: flex-start !important; padding-top: 32px !important; }
-        }
-      `}</style>
-
-      <div style={{ 
-        display:"flex",
-        height:"100vh",
-        width:"100vw",
-        overflow:"hidden",
-        background:C.bg,
-        fontFamily:"var(--font-body), sans-serif" 
-      }}>
-        <div className="auth-brand" style={{ width:"50%", flexShrink:0, overflow:"hidden" }}>
-          <BrandPanel />
-        </div>
-
-        <div className="auth-right" style={{ 
-          flex:1,
-          display:"flex",
-          alignItems:"center",
-          justifyContent:"center",
-          background:C.panel,
-          position:"relative",
-          overflow:"hidden",
-          padding:"clamp(16px,2.5vw,36px)" 
-        }}>
-          <div style={{ 
-            position:"absolute",
-            inset:0,
-            opacity:0.18,
-            backgroundImage:"linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px)",
-            backgroundSize:"28px 28px",
-            pointerEvents:"none" 
-          }} />
-          
-          <div style={{ width:"100%", maxWidth:390, display:"flex", flexDirection:"column" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
-              <div style={{ 
-                width:26,
-                height:26,
-                borderRadius:7,
-                flexShrink:0,
-                background:`linear-gradient(135deg,${C.orange},${C.orangeDk})`,
-                display:"flex",
-                alignItems:"center",
-                justifyContent:"center" 
-              }}>
-                <Logo />
-              </div>
-              <span style={{ 
-                fontSize:12.5,
-                fontWeight:800,
-                color:C.text,
-                letterSpacing:"-0.02em",
-                fontFamily:"var(--font-heading),sans-serif" 
-              }}>
-                Stratum<span style={{ color:C.orange }}> IQ</span>
-              </span>
+      <AuthToaster />
+      <div className="auth-root">
+        <aside className="auth-brand">
+          <div className="auth-brand-grid" />
+          <div className="auth-brand-glow" />
+          <div className="auth-logo">
+            <div className="auth-logo-mark">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M15 6C15 4.067 13.433 2.5 11.5 2.5H8C5.515 2.5 5.515 7.5 8 7.5H11.5C13.985 7.5 13.985 12.5 11.5 12.5H7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-
-            <div style={{ 
-              background:C.card,
-              border:`1px solid ${C.border}`,
-              borderRadius:14,
-              padding:"clamp(18px,2.5vh,26px) clamp(16px,2vw,26px)",
-              boxShadow:C.shadow 
-            }}>
-              <Suspense fallback={null}>
-                <AuthForms />
-              </Suspense>
-            </div>
-
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:5, marginTop:10 }}>
-              <ShieldIcon />
-              <span style={{ fontSize:10.5, color:C.faint }}>JWT auth · OTP verified · Encrypted in transit</span>
-            </div>
+            <span className="auth-logo-text">Stratum<span style={{ color: "#E8692C" }}>IQ</span></span>
           </div>
-        </div>
+          <div className="auth-hero">
+            <h1>Run your quarry<br /><span>smarter, not harder</span></h1>
+            <p>Fleet intelligence, predictive maintenance, and AI copilot — unified for heavy equipment operators.</p>
+            <AuthIllustration />
+            <AuthLottie />
+          </div>
+          <div className="auth-features">
+            {[
+              { Icon: Truck, title: "Fleet Intelligence", desc: "Real-time visibility across machines and sites." },
+              { Icon: Wrench, title: "Predictive Maintenance", desc: "AI risk scores before breakdowns happen." },
+              { Icon: Sparkles, title: "AI Copilot", desc: "Configure equipment and plan operations instantly." },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="auth-feature">
+                <div className="auth-feature-icon"><Icon size={17} /></div>
+                <div><div className="auth-feature-title">{title}</div><div className="auth-feature-desc">{desc}</div></div>
+              </div>
+            ))}
+          </div>
+          <div className="auth-stats">
+            {[["2,400+", "Machines"], ["98.2%", "Uptime"], ["47%", "Less Downtime"]].map(([v, l]) => (
+              <div key={l} className="auth-stat"><div className="auth-stat-value">{v}</div><div className="auth-stat-label">{l}</div></div>
+            ))}
+          </div>
+        </aside>
+        <main className="auth-panel">
+          <div className="auth-card-wrap">
+            <Suspense fallback={<div className="auth-card"><Loader2 className="auth-spin" /></div>}>
+              <AuthForms />
+            </Suspense>
+            <div className="auth-footer-note"><Shield size={12} /><span>JWT auth · OTP verified · Encrypted in transit</span></div>
+          </div>
+        </main>
       </div>
     </>
   );

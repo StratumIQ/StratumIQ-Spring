@@ -7,6 +7,7 @@
 "use client";
 
 import React from "react";
+import { Check, X, Info } from "lucide-react";
 import { BRAND, DASH } from "@/lib/constants";
 
 const O = BRAND.orange;
@@ -395,7 +396,7 @@ export function DataTable({
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 export function EmptyState({ icon, title, desc, action }: {
-  icon: string; title: string; desc?: string; action?: React.ReactNode;
+  icon: React.ReactNode; title: string; desc?: string; action?: React.ReactNode;
 }) {
   return (
     <div style={{
@@ -403,7 +404,7 @@ export function EmptyState({ icon, title, desc, action }: {
       background: DASH.surface2, borderRadius: 12,
       border: `1px dashed ${DASH.border}`,
     }}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>{icon}</div>
+      <div style={{ marginBottom: 10, display: "flex", justifyContent: "center", color: DASH.text3 }}>{icon}</div>
       <div style={{ fontSize: 14, fontWeight: 700, color: DASH.text, marginBottom: 4 }}>{title}</div>
       {desc && <div style={{ fontSize: 13, color: DASH.text3, marginBottom: 14 }}>{desc}</div>}
       {action}
@@ -422,7 +423,7 @@ export function Toast({ message, type, onClose }: {
   }, [onClose]);
 
   const bgColor = type === "success" ? "#16A34A" : type === "error" ? DASH.red : DASH.blue;
-  const icon = type === "success" ? "✓" : type === "error" ? "✕" : "ℹ";
+  const Icon = type === "success" ? Check : type === "error" ? X : Info;
 
   return (
     <div style={{
@@ -430,11 +431,11 @@ export function Toast({ message, type, onClose }: {
       display: "flex", alignItems: "center", gap: 10,
       padding: "12px 16px", borderRadius: 10,
       background: bgColor,
-      color: "#fff", fontSize: 13.5, fontWeight: 600,
+      color: "#fff", fontSize:  13.5, fontWeight: 600,
       boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
       animation: "slideIn 0.2s ease",
     }}>
-      {icon} {message}
+      <Icon size={16} /> {message}
       <button onClick={onClose} style={{ 
         background: "none", border: "none", cursor: "pointer", 
         color: "rgba(255,255,255,0.7)", marginLeft: 8, 

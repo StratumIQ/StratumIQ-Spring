@@ -88,10 +88,10 @@ export const TESTIMONIALS = [
 ] as const;
 
 export const EQUIPMENT_STATUS_CONFIG = {
-  active:      { label: "Active",      color: "#16A34A", bg: "rgba(22,163,74,0.08)"   },
-  idle:        { label: "Idle",        color: "#D97706", bg: "rgba(217,119,6,0.08)"   },
-  maintenance: { label: "Maintenance", color: "#E8692C", bg: "rgba(232,105,44,0.08)"  },
-  retired:     { label: "Retired",     color: "#6B7280", bg: "rgba(107,114,128,0.08)" },
+  ACTIVE:      { label: "Active",      color: "#16A34A", bg: "rgba(22,163,74,0.08)"   },
+  IDLE:        { label: "Idle",        color: "#D97706", bg: "rgba(217,119,6,0.08)"   },
+  MAINTENANCE: { label: "Maintenance", color: "#E8692C", bg: "rgba(232,105,44,0.08)"  },
+  RETIRED:     { label: "Retired",     color: "#6B7280", bg: "rgba(107,114,128,0.08)" },
 } as const;
 
 export const ALERT_CONFIG = {
@@ -103,3 +103,37 @@ export const ALERT_CONFIG = {
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+
+export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
+/** Resolve relative upload paths from the backend */
+export function resolveAssetUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
+  return url;
+}
+
+/** Global design tokens — typography, spacing, radius, shadows */
+export const TOKENS = {
+  typography: {
+    xs:   "11px",
+    sm:   "12px",
+    base: "14px",
+    md:   "15px",
+    lg:   "17px",
+    xl:   "20px",
+    "2xl": "24px",
+    "3xl": "30px",
+  },
+  spacing: {
+    1: "4px",  2: "8px",  3: "12px", 4: "16px",
+    5: "20px", 6: "24px", 7: "28px", 8: "32px",
+  },
+  radius: {
+    sm: "6px", md: "10px", lg: "14px", xl: "16px", full: "9999px",
+  },
+  shadow: {
+    xs: "var(--sx)", sm: "var(--ss)", md: "var(--sm)", lg: "var(--sl)",
+  },
+} as const;

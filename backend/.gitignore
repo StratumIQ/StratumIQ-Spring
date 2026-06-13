@@ -4,6 +4,18 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Uploads (runtime)
+uploads/
+
+# Logs & coverage
+logs/
+coverage/
+
 ### STS ###
 .apt_generated
 .classpath

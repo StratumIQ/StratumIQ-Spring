@@ -10,11 +10,13 @@
 "use client";
 
 import { BRAND, DASH, EQUIPMENT_STATUS_CONFIG } from "@/lib/constants";
+import { Truck } from "lucide-react";
 import type { EquipmentStatus, FleetSummary } from "@/types/fleet";
 
 // ── StatusBadge ───────────────────────────────────────────────
-export function StatusBadge({ status }: { status: EquipmentStatus }) {
-  const cfg = EQUIPMENT_STATUS_CONFIG[status] ?? { label: status, color: "#6B7280", bg: "rgba(107,114,128,0.08)" };
+export function StatusBadge({ status }: { status: EquipmentStatus | string }) {
+  const key = status.toUpperCase() as EquipmentStatus;
+  const cfg = EQUIPMENT_STATUS_CONFIG[key] ?? { label: status, color: "#6B7280", bg: "rgba(107,114,128,0.08)" };
   return (
     <span style={{
       display:      "inline-flex",
@@ -37,14 +39,15 @@ export function StatusBadge({ status }: { status: EquipmentStatus }) {
 
 // ── CategoryBadge ─────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string> = {
-  crusher:     "Crusher",
-  screener:    "Screener",
-  conveyor:    "Conveyor",
-  mobile_plant:"Mobile Plant",
-  other:       "Other",
+  CRUSHER:      "Crusher",
+  SCREENER:     "Screener",
+  CONVEYOR:     "Conveyor",
+  MOBILE_PLANT: "Mobile Plant",
+  OTHER:        "Other",
 };
 
 export function CategoryBadge({ category }: { category: string }) {
+  const key = category.toUpperCase();
   return (
     <span style={{
       display:      "inline-flex",
@@ -56,35 +59,43 @@ export function CategoryBadge({ category }: { category: string }) {
       color:        "#2563EB",
       letterSpacing:"0.04em",
     }}>
-      {CATEGORY_LABELS[category] ?? category}
+      {CATEGORY_LABELS[key] ?? category}
     </span>
   );
 }
 
 // ── ServiceTypeBadge ──────────────────────────────────────────
 const SR_TYPE_COLORS: Record<string, { color: string; bg: string }> = {
-  preventive:  { color: "#16A34A", bg: "rgba(22,163,74,0.08)"  },
-  corrective:  { color: "#DC2626", bg: "rgba(220,38,38,0.08)"  },
-  inspection:  { color: "#2563EB", bg: "rgba(37,99,235,0.08)"  },
+  PREVENTIVE:  { color: "#16A34A", bg: "rgba(22,163,74,0.08)"  },
+  CORRECTIVE:  { color: "#DC2626", bg: "rgba(220,38,38,0.08)"  },
+  INSPECTION:  { color: "#2563EB", bg: "rgba(37,99,235,0.08)"  },
 };
 const SR_STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  scheduled:   { color: "#2563EB", bg: "rgba(37,99,235,0.08)"  },
-  in_progress: { color: "#D97706", bg: "rgba(217,119,6,0.08)"  },
-  completed:   { color: "#16A34A", bg: "rgba(22,163,74,0.08)"  },
-  overdue:     { color: "#DC2626", bg: "rgba(220,38,38,0.08)"  },
+  SCHEDULED:   { color: "#2563EB", bg: "rgba(37,99,235,0.08)"  },
+  IN_PROGRESS: { color: "#D97706", bg: "rgba(217,119,6,0.08)"  },
+  COMPLETED:   { color: "#16A34A", bg: "rgba(22,163,74,0.08)"  },
+  OVERDUE:     { color: "#DC2626", bg: "rgba(220,38,38,0.08)"  },
+};
+
+const SR_TYPE_LABELS: Record<string, string> = {
+  PREVENTIVE: "Preventive",
+  CORRECTIVE: "Corrective",
+  INSPECTION: "Inspection",
 };
 
 export function ServiceTypeBadge({ type }: { type: string }) {
-  const cfg = SR_TYPE_COLORS[type] ?? { color: "#6B7280", bg: "rgba(107,114,128,0.08)" };
-  const label = type.charAt(0).toUpperCase() + type.slice(1);
+  const key = type.toUpperCase();
+  const cfg = SR_TYPE_COLORS[key] ?? { color: "#6B7280", bg: "rgba(107,114,128,0.08)" };
+  const label = SR_TYPE_LABELS[key] ?? type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   return (
     <span className="chip" style={{ background: cfg.bg, color: cfg.color }}>{label}</span>
   );
 }
 
 export function ServiceStatusBadge({ status }: { status: string }) {
-  const cfg = SR_STATUS_COLORS[status] ?? { color: "#6B7280", bg: "rgba(107,114,128,0.08)" };
-  const label = status.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase());
+  const key = status.toUpperCase();
+  const cfg = SR_STATUS_COLORS[key] ?? { color: "#6B7280", bg: "rgba(107,114,128,0.08)" };
+  const label = status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   return (
     <span className="chip" style={{ background: cfg.bg, color: cfg.color }}>{label}</span>
   );
@@ -180,8 +191,8 @@ export function SkeletonCard() {
 export function EmptyFleet({ onAdd }: { onAdd: () => void }) {
   return (
     <div style={{ textAlign: "center", padding: "64px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(232,105,44,0.08)", border: "1.5px solid rgba(232,105,44,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
-        🚛
+      <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(232,105,44,0.08)", border: "1.5px solid rgba(232,105,44,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8692C" }}>
+        <Truck size={28} strokeWidth={1.5} />
       </div>
       <div>
         <div style={{ fontSize: 17, fontWeight: 700, color: DASH.text, marginBottom: 6 }}>No equipment yet</div>

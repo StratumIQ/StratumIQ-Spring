@@ -8,10 +8,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import Sidebar from "@/components/dashboard/layout/Sidebar";
 import TopBar from "@/components/dashboard/layout/TopBar";
 import QueryProvider from "@/components/dashboard/layout/QueryProvider";
+import DashboardToaster from "@/components/dashboard/layout/DashboardToaster";
 import { UserCtx, SidebarCtx } from "@/components/dashboard/layout/DashboardContext";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { getToken, removeToken, setToken } from "@/lib/utils";
+import { getDashboardPath, isAdminRole } from "@/lib/routing/dashboardRoutes";
 import type { DashUser } from "@/types";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -45,12 +47,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (cancelled) return;
 
         const userData = data.user ?? data;
+        const role = userData.role || "USER";
+
+        if (isAdminRole(role)) {
+          router.replace(getDashboardPath(role));
+          return;
+        }
+
         setUser({
           id: userData.id!,
           firstName: userData.firstName || "",
           lastName: userData.lastName || "",
           email: userData.email!,
-          role: userData.role || "USER",
+          role,
         });
         setLoading(false);
       } catch (err) {
@@ -62,12 +71,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               setToken(refreshData.accessToken);
               const retry = await authApi.profile();
               const userData = retry.user ?? retry;
+              const role = userData.role || "USER";
+              if (isAdminRole(role)) {
+                router.replace(getDashboardPath(role));
+                return;
+              }
               setUser({
                 id: userData.id!,
                 firstName: userData.firstName || "",
                 lastName: userData.lastName || "",
                 email: userData.email!,
-                role: userData.role || "USER",
+                role,
               });
               setLoading(false);
               return;
@@ -127,6 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <QueryProvider>
+      <DashboardToaster />
       <UserCtx.Provider value={user}>
         <SidebarCtx.Provider value={{ collapsed, toggle: toggleCollapse }}>
           <div className={`dash-root${collapsed ? " dash-root--collapsed" : ""}`}>

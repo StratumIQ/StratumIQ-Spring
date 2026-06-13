@@ -15,9 +15,11 @@ import { DASH, BRAND } from "@/lib/constants";
 import PageShell from "../../layout/PageShell";
 import GlassCard from "../../ui/GlassCard";
 import Button from "../../ui/Button";
+import ImageUpload from "../../ui/ImageUpload";
 import Skeleton from "../../ui/Skeleton";
 import EmptyState from "../../ui/EmptyState";
 import { useEquipmentDetail, useUpdateEquipment } from "../hooks/useFleet";
+import { notify } from "@/lib/toast";
 import type { CreateEquipmentPayload } from "@/types/fleet";
 
 function Field({ label, required, hint, children }: {
@@ -144,10 +146,13 @@ export default function EditFleet({ id }: { id: number }) {
 
     try {
       await updateEquipment(id, payload, () => {
+        notify.success("Fleet updated successfully");
         router.push(`/dashboard/fleet/${id}`);
       });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Update failed");
+      const msg = err instanceof Error ? err.message : "Unable to save fleet";
+      setSubmitError(msg);
+      notify.error(msg);
     }
   };
 
@@ -275,10 +280,13 @@ export default function EditFleet({ id }: { id: number }) {
           {/* ── Media & Documents ── */}
           <SectionHeader>Media & Documents</SectionHeader>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
-            <Field label="Image URL" hint="Direct link to equipment photo">
-              <input type="url" value={form.image_url ?? ""} onChange={set("image_url")} placeholder="https://…" {...f("image_url")} />
+            <Field label="Equipment Photo" hint="Upload a photo of the asset">
+              <ImageUpload
+                value={form.image_url}
+                onChange={(url) => setForm((prev) => ({ ...prev, image_url: url ?? undefined }))}
+              />
             </Field>
-            <Field label="Document URL" hint="Manual or service guide link">
+            <Field label="Document URL" hint="Optional link to manual or service guide">
               <input type="url" value={form.document_url ?? ""} onChange={set("document_url")} placeholder="https://…" {...f("document_url")} />
             </Field>
           </div>

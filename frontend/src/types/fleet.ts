@@ -11,7 +11,9 @@ export type EquipmentStatus   = "ACTIVE" | "IDLE" | "MAINTENANCE" | "RETIRED";
 export type EquipmentCategory = "CRUSHER" | "SCREENER" | "CONVEYOR" | "MOBILE_PLANT" | "OTHER";
 export type ServiceType       = "PREVENTIVE" | "CORRECTIVE" | "INSPECTION";
 export type ServiceStatus     = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
-export type OperationEventType = "HOURS_UPDATE" | "DOWNTIME" | "NOTE";
+export type OperationEventType =
+  | "HOURS_UPDATE" | "DOWNTIME" | "NOTE"
+  | "hours_update" | "downtime" | "note";
 
 // ── Equipment (matches FleetEquipment entity) ─────────────────────────────────
 export type FleetEquipment = {
@@ -149,6 +151,6 @@ export type CreateServiceRecordPayload = {
 export type UpdateServiceRecordPayload = Partial<CreateServiceRecordPayload>;
 
 export type LogOperationPayload =
-  | { event_type: "HOURS_UPDATE"; hours_logged: number; note?: string }
-  | { event_type: "DOWNTIME";     downtime_reason: string; note?: string }
-  | { event_type: "NOTE";         note: string };
+  | { event_type: "hours_update" | "HOURS_UPDATE"; running_hours?: number; hours_logged?: number; note?: string }
+  | { event_type: "downtime" | "DOWNTIME"; downtime_reason: string; note?: string }
+  | { event_type: "note" | "NOTE"; note: string };

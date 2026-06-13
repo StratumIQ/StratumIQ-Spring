@@ -2,6 +2,8 @@
 
 "use client";
 
+import { AlertTriangle } from "lucide-react";
+
 /**
  * IdentityTab — StratumIQ
  * Layer A: Edit equipment identity fields and status after initial creation.
@@ -235,8 +237,9 @@ export default function IdentityTab({ spec, onRefresh }: { spec: EquipmentSpec; 
             <div style={{ fontSize: 13, color: DASH.text }}>{eq.created_at ? new Date(eq.created_at).toLocaleDateString() : "—"}</div>
           </div>
         </div>
-        <div style={{ marginTop: 6, fontSize: 11.5, color: DASH.text3 }}>
-          ⚠ Equipment type and mobility cannot be changed after creation.
+        <div style={{ marginTop: 6, fontSize: 11.5, color: DASH.text3, display: "flex", alignItems: "center", gap: 6 }}>
+          <AlertTriangle size={13} color="#D97706" />
+          Equipment type and mobility cannot be changed after creation.
         </div>
 
         <SaveBtn loading={savingFields} onClick={handleSaveFields} label="Save Changes" />

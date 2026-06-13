@@ -200,9 +200,9 @@ function BenchmarksSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: ()
               <Field label="Advantage">
                 <Select value={form.advantage} onChange={set("advantage")} placeholder="Select…"
                   options={[
-                    { value: "positive", label: "✅ Positive (we win)" },
-                    { value: "negative", label: "❌ Negative (they win)" },
-                    { value: "neutral",  label: "➖ Neutral" },
+                    { value: "positive", label: "Positive (we win)" },
+                    { value: "negative", label: "Negative (they win)" },
+                    { value: "neutral",  label: "Neutral" },
                   ]} />
               </Field>
               <div style={{ gridColumn: "1/-1" }}>
@@ -562,7 +562,7 @@ function ReviewsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () =>
       setForm({ rating: "5", review_text: "", operational_hours: "", site_type: "", site_location: "" });
       setAdding(false);
       setErrors({});
-      show(`Review (${form.rating}★) submitted!`, "success");
+      show(`Review (${form.rating}/5) submitted!`, "success");
       onSaved();
     } catch (err) {
       show(err instanceof Error ? err.message : "Failed to submit review", "error");

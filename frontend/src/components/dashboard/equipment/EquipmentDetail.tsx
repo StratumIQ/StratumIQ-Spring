@@ -12,6 +12,7 @@ import {
   Activity,
   User,
   Clock,
+  Star,
 } from "lucide-react";
 import PageShell from "../layout/PageShell";
 import GlassCard from "../ui/GlassCard";
@@ -335,13 +336,13 @@ function AnalyticsTab({ spec }: { spec: EquipmentSpec }) {
               <div key={r.id ?? idx} className="d-review-card">
                 <div className="d-review-stars">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <span
+                    <Star
                       key={i}
+                      size={14}
                       className={i <= r.rating ? "d-star filled" : "d-star"}
+                      fill={i <= r.rating ? "currentColor" : "none"}
                       aria-hidden
-                    >
-                      ★
-                    </span>
+                    />
                   ))}
                   {r.site_type && <span className="d-review-site">{r.site_type}</span>}
                 </div>

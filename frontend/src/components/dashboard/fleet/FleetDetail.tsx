@@ -23,7 +23,7 @@ import {
   Banknote,
   Loader2,
 } from "lucide-react";
-import { DASH, BRAND } from "@/lib/constants";
+import { DASH, BRAND, resolveAssetUrl } from "@/lib/constants";
 import { safeFloat } from "@/lib/utils";
 import PageShell from "../layout/PageShell";
 import GlassCard from "../ui/GlassCard";
@@ -43,6 +43,7 @@ import ConfirmDeleteModal from "./modals/ConfirmDeleteModal";
 import PartsTab from "./tabs/PartsTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import type { EquipmentStatus, ServiceRecord, OperationLog } from "@/types/fleet";
+import { notify } from "@/lib/toast";
 
 type Tab = "overview" | "operations" | "maintenance" | "parts" | "analytics";
 
@@ -82,8 +83,12 @@ export default function FleetDetail({ id }: { id: number }) {
   const handleDeleteClick = () => setShowDeleteModal(true);
   const handleDeleteConfirm = async () => {
     try {
-      await removeAsset(id, () => router.push("/dashboard/fleet"));
-    } catch {
+      await removeAsset(id, () => {
+        notify.success("Fleet asset removed");
+        router.push("/dashboard/fleet");
+      });
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to delete fleet asset");
       refetch();
       setShowDeleteModal(false);
     }
@@ -92,8 +97,14 @@ export default function FleetDetail({ id }: { id: number }) {
 
   const handleStatusChange = async (newStatus: EquipmentStatus) => {
     try {
-      await changeStatus(id, { status: newStatus }, () => refetch());
-    } catch { refetch(); }
+      await changeStatus(id, { status: newStatus }, () => {
+        refetch();
+        notify.success("Fleet status updated");
+      });
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to update status");
+      refetch();
+    }
   };
 
   if (loading) return <DetailSkeleton />;
@@ -121,10 +132,10 @@ export default function FleetDetail({ id }: { id: number }) {
               onChange={(e) => handleStatusChange(e.target.value as EquipmentStatus)}
               aria-label="Asset status"
             >
-              <option value="active">Active</option>
-              <option value="idle">Idle</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="retired">Retired</option>
+              <option value="ACTIVE">Active</option>
+              <option value="IDLE">Idle</option>
+              <option value="MAINTENANCE">Maintenance</option>
+              <option value="RETIRED">Retired</option>
             </select>
             <Button
               variant="outline"
@@ -165,7 +176,7 @@ export default function FleetDetail({ id }: { id: number }) {
       >
         <GlassCard padding="none" className="d-fleet-detail-hero">
           {eq.image_url ? (
-            <img src={eq.image_url} alt={eq.name} className="d-fleet-detail-hero-img" />
+            <img src={resolveAssetUrl(eq.image_url) ?? eq.image_url} alt={eq.name} className="d-fleet-detail-hero-img" />
           ) : (
             <div className="d-fleet-detail-hero-placeholder">
               <Icons.Image size={64} />
@@ -216,7 +227,7 @@ function OverviewTab({ equipment: eq }: { equipment: ReturnType<typeof useEquipm
   const healthLabel = healthScore >= 70 ? "Optimal" : healthScore >= 40 ? "Attention" : "Critical";
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }} className="d-fleet-detail-grid">
       
       {/* Equipment Details */}
       <div>
@@ -310,8 +321,11 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
       }
       setShowForm(false);
       setNewHours(""); setReason(""); setNote("");
+      notify.success("Operation logged successfully");
     } catch (err) {
-      setFormErr(err instanceof Error ? err.message : "Failed to log event");
+      const msg = err instanceof Error ? err.message : "Failed to log event";
+      setFormErr(msg);
+      notify.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -400,6 +414,7 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
 }
 
 function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
+  const eventKey = op.event_type?.toLowerCase();
   const icons: Record<string, React.ReactNode> = {
     hours_update: <Icons.Clock size={14} />,
     downtime: <Icons.Alerts size={14} />,
@@ -407,11 +422,11 @@ function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
   };
   
   let label = "";
-  if (op.event_type === "hours_update") {
+  if (eventKey === "hours_update") {
     const hoursLogged = safeFloat(op.hours_logged);
     const totalHours = safeFloat(op.total_hours_snapshot);
     label = `Hours update: +${hoursLogged.toLocaleString()} hrs (total: ${totalHours.toLocaleString()} hrs)`;
-  } else if (op.event_type === "downtime") {
+  } else if (eventKey === "downtime") {
     label = `Downtime: ${op.downtime_reason}`;
   } else {
     label = "Note added";
@@ -437,7 +452,7 @@ function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
         flexShrink: 0, 
         color: BRAND.orange,
       }}>
-        {icons[op.event_type]}
+        {icons[eventKey ?? "note"]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: DASH.text, marginBottom: 4 }}>{label}</div>
@@ -455,7 +470,15 @@ function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
 function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
   const { records, loading, error, saving, create, remove } = useServiceRecords(equipmentId);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", service_type: "preventive", status: "scheduled", description: "", technician_name: "", service_date: "", cost: "" });
+  const [form, setForm] = useState({
+    title: "",
+    service_type: "PREVENTIVE" as ServiceRecord["service_type"],
+    status: "SCHEDULED" as ServiceRecord["status"],
+    description: "",
+    technician_name: "",
+    service_date: "",
+    cost: "",
+  });
   const [formErr, setFormErr] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -468,15 +491,16 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
     try {
       await create({
         title: form.title.trim(),
-        service_type: form.service_type as "preventive" | "corrective" | "inspection",
-        status: form.status as "scheduled" | "in_progress" | "completed" | "overdue",
+        service_type: form.service_type,
+        status: form.status,
         description: form.description || undefined,
         technician_name: form.technician_name || undefined,
         service_date: form.service_date || undefined,
         cost: form.cost ? parseFloat(form.cost) : undefined,
       }, () => {
+        notify.success("Service record added");
         setShowForm(false);
-        setForm({ title: "", service_type: "preventive", status: "scheduled", description: "", technician_name: "", service_date: "", cost: "" });
+        setForm({ title: "", service_type: "PREVENTIVE", status: "SCHEDULED", description: "", technician_name: "", service_date: "", cost: "" });
       });
     } catch (err) {
       setFormErr(err instanceof Error ? err.message : "Failed to add record");
@@ -504,19 +528,19 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
             </div>
             <div>
               <label style={{ fontSize: 12, color: DASH.text3, fontWeight: 600, display: "block", marginBottom: 4 }}>Type *</label>
-              <select className="dash-input" value={form.service_type} onChange={e => setForm(f => ({ ...f, service_type: e.target.value }))} style={{ height: 40, fontSize: 13 }}>
-                <option value="preventive">Preventive</option>
-                <option value="corrective">Corrective</option>
-                <option value="inspection">Inspection</option>
+              <select className="dash-input" value={form.service_type} onChange={e => setForm(f => ({ ...f, service_type: e.target.value as ServiceRecord["service_type"] }))} style={{ height: 40, fontSize: 13 }}>
+                <option value="PREVENTIVE">Preventive</option>
+                <option value="CORRECTIVE">Corrective</option>
+                <option value="INSPECTION">Inspection</option>
               </select>
             </div>
             <div>
               <label style={{ fontSize: 12, color: DASH.text3, fontWeight: 600, display: "block", marginBottom: 4 }}>Status</label>
-              <select className="dash-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={{ height: 40, fontSize: 13 }}>
-                <option value="scheduled">Scheduled</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="overdue">Overdue</option>
+              <select className="dash-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ServiceRecord["status"] }))} style={{ height: 40, fontSize: 13 }}>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="OVERDUE">Overdue</option>
               </select>
             </div>
             <div>
@@ -568,13 +592,23 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
 }
 
 function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelete: () => void }) {
+  const [confirming, setConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (confirm("Remove this service record? This cannot be undone.")) {
-      setIsDeleting(true);
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setIsDeleting(true);
+    try {
       await onDelete();
+      notify.success("Service record removed");
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to remove service record");
+    } finally {
       setIsDeleting(false);
+      setConfirming(false);
     }
   };
 
@@ -613,8 +647,8 @@ function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelet
         </div>
         {record.description && <div style={{ fontSize: 12.5, color: DASH.text3, marginTop: 4 }}>{record.description}</div>}
       </div>
-      <button onClick={handleDelete} disabled={isDeleting} style={{ background: "none", border: "none", cursor: "pointer", color: DASH.text3, padding: 4, flexShrink: 0, opacity: isDeleting ? 0.5 : 1 }} title="Remove">
-        <Icons.Delete size={16} />
+      <button onClick={handleDelete} disabled={isDeleting} style={{ background: confirming ? "rgba(220,38,38,0.1)" : "none", border: confirming ? "1px solid rgba(220,38,38,0.3)" : "none", borderRadius: 8, cursor: "pointer", color: confirming ? "#DC2626" : DASH.text3, padding: confirming ? "4px 8px" : 4, flexShrink: 0, opacity: isDeleting ? 0.5 : 1, fontSize: 11, fontWeight: 600 }} title={confirming ? "Confirm delete" : "Remove"}>
+        {confirming ? (isDeleting ? "Removing…" : "Confirm") : <Icons.Delete size={16} />}
       </button>
     </div>
   );
@@ -623,11 +657,11 @@ function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelet
 // ── Helper Components ──
 function DetailSection({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: DASH.text, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${DASH.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="d-detail-section">
+      <div className="d-detail-section-title">
         {icon} {title}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
+      <div className="d-detail-section-body">{children}</div>
     </div>
   );
 }

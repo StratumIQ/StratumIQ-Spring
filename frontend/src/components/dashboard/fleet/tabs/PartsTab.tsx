@@ -10,6 +10,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import {
+  Wrench, Settings, Droplets, Link2, Zap, Package,
+  BookOpen, FileText, HelpCircle, Lightbulb, Search, ChevronRight, Download,
+} from "lucide-react";
 import { DASH, BRAND } from "@/lib/constants";
 import type { FleetEquipment } from "@/types/fleet";
 
@@ -50,7 +54,7 @@ export default function PartsTab({ equipment }: PartsTabProps) {
             gap: 8,
           }}
         >
-          <span style={{ fontSize: 18 }}>🔩</span>
+          <Package size={18} color={BRAND.orange} />
           Parts Catalog
         </div>
         <div
@@ -123,12 +127,12 @@ export default function PartsTab({ equipment }: PartsTabProps) {
           }}
         >
           {[
-            { name: "Filters", icon: "🔧", count: "12 variants" },
-            { name: "Wear Parts", icon: "⚙️", count: "8 variants" },
-            { name: "Hydraulics", icon: "💧", count: "6 variants" },
-            { name: "Belts & Chains", icon: "⛓️", count: "5 variants" },
-            { name: "Electrical", icon: "⚡", count: "9 variants" },
-            { name: "Engine Parts", icon: "🔧", count: "15 variants" },
+            { name: "Filters", Icon: Wrench, count: "12 variants" },
+            { name: "Wear Parts", Icon: Settings, count: "8 variants" },
+            { name: "Hydraulics", Icon: Droplets, count: "6 variants" },
+            { name: "Belts & Chains", Icon: Link2, count: "5 variants" },
+            { name: "Electrical", Icon: Zap, count: "9 variants" },
+            { name: "Engine Parts", Icon: Wrench, count: "15 variants" },
           ].map((cat) => (
             <button
               key={cat.name}
@@ -154,7 +158,7 @@ export default function PartsTab({ equipment }: PartsTabProps) {
                 (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
               }}
             >
-              <span style={{ fontSize: 20 }}>{cat.icon}</span>
+              <span style={{ color: BRAND.orange, display: "flex" }}><cat.Icon size={20} /></span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: DASH.text }}>
                   {cat.name}
@@ -189,7 +193,7 @@ export default function PartsTab({ equipment }: PartsTabProps) {
             gap: 8,
           }}
         >
-          <span style={{ fontSize: 18 }}>📚</span>
+          <BookOpen size={18} color={BRAND.orange} />
           Manuals & Documentation
         </div>
         <div
@@ -237,7 +241,7 @@ export default function PartsTab({ equipment }: PartsTabProps) {
                   fontSize: 20,
                 }}
               >
-                📄
+                <FileText size={20} color={BRAND.orange} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: DASH.text }}>
@@ -299,7 +303,7 @@ export default function PartsTab({ equipment }: PartsTabProps) {
                 fontSize: 20,
               }}
             >
-              ❓
+              <HelpCircle size={20} color={DASH.text3} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: DASH.text }}>
@@ -336,7 +340,8 @@ export default function PartsTab({ equipment }: PartsTabProps) {
           textAlign: "center",
         }}
       >
-        💡 Parts inventory is managed in the{" "}
+        <Lightbulb size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+        Parts inventory is managed in the{" "}
         <button
           onClick={() => router.push("/dashboard/parts")}
           style={{
