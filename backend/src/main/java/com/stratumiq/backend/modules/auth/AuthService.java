@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.stratumiq.backend.modules.admin.service.AdminActivityLogger;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,17 +29,20 @@ public class AuthService {
     private final RefreshTokenRepository refreshRepo;
     private final BCryptPasswordEncoder  encoder;
     private final JwtUtil                jwtUtil;
+    private final AdminActivityLogger activityLogger;
 
     public AuthService(UserRepository userRepo,
                        OtpRepository otpRepo,
                        RefreshTokenRepository refreshRepo,
                        BCryptPasswordEncoder encoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       AdminActivityLogger activityLogger) {
         this.userRepo    = userRepo;
         this.otpRepo     = otpRepo;
         this.refreshRepo = refreshRepo;
         this.encoder     = encoder;
         this.jwtUtil     = jwtUtil;
+        this.activityLogger = activityLogger;
     }
 
     // ── REGISTER ─────────────────────────────────────────────────────────
@@ -143,6 +147,19 @@ public class AuthService {
         user.setLastLoginAt(Instant.now());
         userRepo.save(user);
 
+        activityLogger.log(
+            user.getTenantId(),
+            user.getId(),
+            user.getId(),
+            "USER_LOGIN",
+            "USER",
+            user.getId(),
+            Map.of(
+                "email", user.getEmail(),
+                "status","Success"
+            )
+        );
+
         return issueTokens(user);
     }
 
@@ -186,6 +203,32 @@ public class AuthService {
     public void logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
             try {
+                io.jsonwebtoken.Claims claims =
+                jwtUtil.validateRefreshToken(refreshToken);
+
+                Long userId =
+        Long.parseLong(claims.getSubject());
+
+
+                User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found"));
+
+                activityLogger.log(
+                user.getTenantId(),
+                user.getId(),
+                user.getId(),
+                "USER_LOGOUT",
+                "USER",
+                user.getId(),
+                Map.of(
+                        "email", user.getEmail(),
+                        "status", "SUCCESS"
+                )
+        );
+
+
                 refreshRepo.deleteByToken(refreshToken);
             } catch (Exception e) {
                 System.err.println("[AUTH] logout DB warn: " + e.getMessage());

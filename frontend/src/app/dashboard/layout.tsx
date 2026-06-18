@@ -11,6 +11,7 @@ import QueryProvider from "@/components/dashboard/layout/QueryProvider";
 import DashboardToaster from "@/components/dashboard/layout/DashboardToaster";
 import { UserCtx, SidebarCtx } from "@/components/dashboard/layout/DashboardContext";
 import { authApi } from "@/lib/api/auth";
+import DashboardLoader from "@/components/dashboard/layout/DashboardLoader";
 import { ApiError } from "@/lib/api/client";
 import { getToken, removeToken, setToken } from "@/lib/utils";
 import { getDashboardPath, isAdminRole } from "@/lib/routing/dashboardRoutes";
@@ -119,24 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [sidebarOpen]);
 
   if (loading) {
-    return (
-      <div className="dash-root dash-loading">
-        <div className="dash-loading-inner">
-          <div className="sb-logo-icon dash-loading-logo">
-            <svg width="24" height="24" viewBox="0 0 18 18" fill="none" aria-hidden>
-              <path
-                d="M14 5C14 3.34 12.66 2 11 2H7C4.79 2 4.79 7 7 7H11C13.21 7 13.21 12 11 12H6"
-                stroke="white"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <div className="d-btn-spinner dark" />
-          <p className="d-text-muted">Loading workspace…</p>
-        </div>
-      </div>
-    );
+    return <DashboardLoader />;
   }
 
   return (

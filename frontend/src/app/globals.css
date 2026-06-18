@@ -18,7 +18,7 @@
   --navy-hover:   #1F2937;
 
   /* Fonts — set by next/font/google on <html> */
-  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  --font-mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Dashboard surface */
   --d-bg:       #F5F0EE;

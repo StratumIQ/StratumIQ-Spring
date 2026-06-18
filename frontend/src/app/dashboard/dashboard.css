@@ -1517,6 +1517,144 @@
   gap: 12px;
 }
 .dash-loading-logo { margin: 0 auto; width: 48px; height: 48px; }
+
+/* ── SPLASH LOADER ─────────────────────────────────────────── */
+.dash-splash {
+  position:        fixed;
+  inset:           0;
+  z-index:         9999;
+  background:      #0D1117;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             28px;
+  font-family:     var(--font-body, 'DM Sans', sans-serif);
+}
+
+/* Ring container — holds SVG + logo centered */
+.dash-splash-ring-wrap {
+  position: relative;
+  width:    200px;
+  height:   200px;
+  flex-shrink: 0;
+}
+
+.dash-splash-rings {
+  width:    100%;
+  height:   100%;
+  overflow: visible;
+}
+
+/* Outer ring — clockwise */
+.dash-ring-outer {
+  transform-origin: 100px 100px;
+  animation: splash-spin-cw 3s linear infinite;
+}
+
+/* Inner ring — counter-clockwise, faster */
+.dash-ring-inner {
+  transform-origin: 100px 100px;
+  animation: splash-spin-ccw 2s linear infinite;
+}
+
+/* Orbit dots — co-rotate with outer ring */
+.dash-dot-orbit {
+  transform-origin: 100px 100px;
+  animation: splash-spin-cw 3s linear infinite;
+}
+.dash-dot-orbit--2 {
+  animation-duration: 3s;
+  animation-delay: -1s;
+}
+.dash-dot-orbit--3 {
+  animation-duration: 3s;
+  animation-delay: -2s;
+}
+
+@keyframes splash-spin-cw {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+@keyframes splash-spin-ccw {
+  from { transform: rotate(0deg);    }
+  to   { transform: rotate(-360deg); }
+}
+
+/* Logo centered inside ring */
+.dash-splash-logo-wrap {
+  position:        absolute;
+  inset:           0;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+}
+.dash-splash-logo-img {
+  width:      72px;
+  height:     72px;
+  object-fit: contain;
+  filter:     drop-shadow(0 0 18px rgba(232,105,44,0.45));
+  animation:  splash-pulse 2.4s ease-in-out infinite;
+}
+@keyframes splash-pulse {
+  0%, 100% { filter: drop-shadow(0 0 14px rgba(232,105,44,0.40)); }
+  50%       { filter: drop-shadow(0 0 28px rgba(232,105,44,0.70)); }
+}
+
+/* Wordmark */
+.dash-splash-brand {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            6px;
+}
+.dash-splash-wordmark {
+  font-family:    var(--font-heading, 'Syne', sans-serif);
+  font-size:      26px;
+  font-weight:    800;
+  letter-spacing: -.03em;
+  color:          #ffffff;
+  line-height:    1;
+}
+.dash-splash-wordmark span {
+  color: #E8692C;
+}
+.dash-splash-tagline {
+  font-size:      12px;
+  font-weight:    500;
+  color:          rgba(255,255,255,0.38);
+  letter-spacing: .04em;
+}
+
+/* Progress bar */
+.dash-splash-progress-wrap {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            10px;
+  width:          220px;
+}
+.dash-splash-progress-track {
+  width:         100%;
+  height:        3px;
+  background:    rgba(255,255,255,0.09);
+  border-radius: 99px;
+  overflow:      hidden;
+}
+.dash-splash-progress-fill {
+  height:           100%;
+  background:       linear-gradient(90deg, #E8692C, #FF9A5C);
+  border-radius:    99px;
+  transition:       width 600ms cubic-bezier(.16,1,.3,1);
+  box-shadow:       0 0 8px rgba(232,105,44,0.6);
+}
+.dash-splash-progress-text {
+  font-size:   11.5px;
+  color:       rgba(255,255,255,0.32);
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+
 .dash-overlay { position: fixed; inset: 0; z-index: 199; }
 
 .sb--collapsed { width: var(--sidebar-w-collapsed); }
