@@ -7,7 +7,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi } from "@/lib/api/equipment";
+
+const equipmentAPI = equipmentApi;
 import type {
   EquipmentSpec, EquipmentListItem, OEM, EquipmentListQuery,
 } from "@/types/equipment";

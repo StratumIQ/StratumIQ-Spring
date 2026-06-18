@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.stratumiq.backend.modules.admin.service.AdminActivityLogger;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -23,36 +24,36 @@ import java.util.*;
 @Service
 public class AuthService {
 
-    private final UserRepository       userRepo;
-    private final OtpRepository        otpRepo;
+    private final UserRepository         userRepo;
+    private final OtpRepository          otpRepo;
     private final RefreshTokenRepository refreshRepo;
     private final BCryptPasswordEncoder  encoder;
     private final JwtUtil                jwtUtil;
+    private final AdminActivityLogger activityLogger;
 
     public AuthService(UserRepository userRepo,
                        OtpRepository otpRepo,
                        RefreshTokenRepository refreshRepo,
                        BCryptPasswordEncoder encoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       AdminActivityLogger activityLogger) {
         this.userRepo    = userRepo;
         this.otpRepo     = otpRepo;
         this.refreshRepo = refreshRepo;
         this.encoder     = encoder;
         this.jwtUtil     = jwtUtil;
+        this.activityLogger = activityLogger;
     }
 
     // ── REGISTER ─────────────────────────────────────────────────────────
-    // Replaces createUser() + storeOTP() + generateOTP() in auth.controller.js
 
     @Transactional
     public Map<String, Object> register(RegisterRequest req) {
-        // Replaces: findUserByEmail check → 409
         if (userRepo.existsByEmail(req.email().toLowerCase())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Email already registered");
         }
 
-        // Replaces: hashPassword(value.password) from hash.js via bcrypt
         User user = User.builder()
             .firstName(req.firstName())
             .lastName(req.lastName())
@@ -68,7 +69,6 @@ public class AuthService {
 
         user = userRepo.save(user);
 
-        // Replaces: generateOTP() + hashOTP() + storeOTP() from otp.utils/service.js
         String otp = createAndStoreOtp(user.getId(), OtpType.EMAIL);
 
         // TODO: Replace with real email provider (Resend / SendGrid / AWS SES)
@@ -81,7 +81,6 @@ public class AuthService {
     }
 
     // ── VERIFY EMAIL OTP ─────────────────────────────────────────────────
-    // Replaces verifyEmailOTP() in auth.controller.js
 
     @Transactional
     public Map<String, Object> verifyEmailOtp(VerifyOtpRequest req) {
@@ -102,7 +101,6 @@ public class AuthService {
     }
 
     // ── SEND PHONE OTP ───────────────────────────────────────────────────
-    // Replaces sendPhoneOTP() in auth.controller.js
 
     @Transactional
     public void sendPhoneOtp(SendPhoneOtpRequest req) {
@@ -113,8 +111,6 @@ public class AuthService {
     }
 
     // ── VERIFY PHONE OTP ─────────────────────────────────────────────────
-    // Replaces verifyPhoneOTP() in auth.controller.js
-    // Also activates account + issues tokens (same flow as Node.js)
 
     @Transactional
     public Map<String, String> verifyPhoneOtp(VerifyOtpRequest req) {
@@ -124,7 +120,6 @@ public class AuthService {
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "User not found"));
 
-        // Replaces activateUser() in auth.service.js
         user.setPhoneVerified(true);
         user.setAccountStatus(AccountStatus.ACTIVE);
         user = userRepo.save(user);
@@ -133,8 +128,6 @@ public class AuthService {
     }
 
     // ── LOGIN ─────────────────────────────────────────────────────────────
-    // Replaces login() in auth.controller.js — same error message for
-    // email-not-found AND wrong-password to avoid user enumeration
 
     public Map<String, String> login(LoginRequest req) {
         User user = userRepo.findByEmail(req.email().toLowerCase())
@@ -146,20 +139,33 @@ public class AuthService {
                 "Account not verified. Complete signup first.");
         }
 
-        // Replaces comparePassword() from hash.js
         if (!encoder.matches(req.password(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                 "Invalid email or password");
         }
 
+        user.setLastLoginAt(Instant.now());
+        userRepo.save(user);
+
+        activityLogger.log(
+            user.getTenantId(),
+            user.getId(),
+            user.getId(),
+            "USER_LOGIN",
+            "USER",
+            user.getId(),
+            Map.of(
+                "email", user.getEmail(),
+                "status","Success"
+            )
+        );
+
         return issueTokens(user);
     }
 
     // ── REFRESH ───────────────────────────────────────────────────────────
-    // Replaces refresh() in auth.controller.js
 
     public String refresh(String refreshToken) {
-        // Check token exists in DB — replaces findRefreshToken()
         refreshRepo.findByToken(refreshToken)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.FORBIDDEN, "Invalid refresh token"));
@@ -182,26 +188,49 @@ public class AuthService {
                 "User inactive");
         }
 
-        // Issue new access token only — refresh token stays valid
         return jwtUtil.generateAccessToken(
             user.getId(),
             user.getRole().name(),
             user.getTenantId(),
-            List.of(),
+            permissionsForRole(user.getRole()),
             UUID.randomUUID().toString()
         );
     }
 
     // ── LOGOUT ────────────────────────────────────────────────────────────
-    // Replaces logout() in auth.controller.js
 
     @Transactional
     public void logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
             try {
+                io.jsonwebtoken.Claims claims =
+                jwtUtil.validateRefreshToken(refreshToken);
+
+                Long userId =
+        Long.parseLong(claims.getSubject());
+
+
+                User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found"));
+
+                activityLogger.log(
+                user.getTenantId(),
+                user.getId(),
+                user.getId(),
+                "USER_LOGOUT",
+                "USER",
+                user.getId(),
+                Map.of(
+                        "email", user.getEmail(),
+                        "status", "SUCCESS"
+                )
+        );
+
+
                 refreshRepo.deleteByToken(refreshToken);
             } catch (Exception e) {
-                // Non-blocking — logout succeeds even if DB delete fails
                 System.err.println("[AUTH] logout DB warn: " + e.getMessage());
             }
         }
@@ -209,33 +238,27 @@ public class AuthService {
 
     // ── INTERNAL HELPERS ──────────────────────────────────────────────────
 
-    // Replaces generateOTP() + hashOTP() + storeOTP()
-    // from otp.utils.js + otp.service.js
     @Transactional
     public String createAndStoreOtp(Long userId, OtpType type) {
-        // Delete previous OTPs for this user+type — same as storeOTP() cleanup
         otpRepo.deleteByUserIdAndType(userId, type);
 
-        // Cryptographically secure — replaces crypto.randomInt(0, 1_000_000)
         String otp = String.format("%06d",
             new SecureRandom().nextInt(1_000_000));
 
-        // SHA-256 — replaces crypto.createHash('sha256') from otp.utils.js
         String otpHash = sha256(otp);
 
         OtpVerification record = OtpVerification.builder()
             .userId(userId)
             .otpHash(otpHash)
             .type(type)
-            .expiresAt(Instant.now().plusMillis(600_000)) // 10 min TTL
+            .expiresAt(Instant.now().plusMillis(600_000))
             .createdAt(Instant.now())
             .build();
 
         otpRepo.save(record);
-        return otp; // return plaintext for sending via email/SMS
+        return otp;
     }
 
-    // Replaces isOTPExpired() + hashOTP() comparison in auth.controller.js
     private void verifyOtp(Long userId, String otp, OtpType type) {
         OtpVerification record = otpRepo
             .findTopByUserIdAndTypeOrderByCreatedAtDesc(userId, type)
@@ -252,15 +275,12 @@ public class AuthService {
                 "Invalid OTP.");
         }
 
-        // Consume OTP — replaces deleteOTP() in otp.service.js
         otpRepo.deleteById(record.getId());
     }
 
-    // Replaces generateAccessToken + generateRefreshToken + saveRefreshToken
     private Map<String, String> issueTokens(User user) {
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
-        // Replaces saveRefreshToken() in auth.service.js
         RefreshToken rt = RefreshToken.builder()
             .userId(user.getId())
             .token(refreshToken)
@@ -272,8 +292,8 @@ public class AuthService {
             user.getId(),
             user.getRole().name(),
             user.getTenantId(),
-            List.of(),                       // permissions — populated after RBAC phase
-            UUID.randomUUID().toString()     // session_id
+            permissionsForRole(user.getRole()),
+            UUID.randomUUID().toString()
         );
 
         return Map.of(
@@ -282,7 +302,51 @@ public class AuthService {
         );
     }
 
-    // Replaces hashOTP() from otp.utils.js
+    /**
+     * Returns the permission strings baked into the JWT for each role.
+     * These must match the PERM_ authorities checked in @PreAuthorize
+     * annotations (without the "PERM_" prefix — JwtAuthFilter adds that).
+     *
+     * TODO: Replace with DB-driven RBAC once that phase is built.
+     */
+    private List<String> permissionsForRole(Role role) {
+        return switch (role) {
+            case SUPER_ADMIN -> List.of(
+                "fleet:view",        "fleet:create",
+                "fleet:edit",        "fleet:delete",
+                "maintenance:view",  "maintenance:create",
+                "maintenance:edit",
+                "admin:dashboard:view",
+                "admin:users:view",  "admin:users:edit",
+                "admin:fleet:view",
+                "admin:support:view", "admin:support:manage"
+            );
+            case ADMIN -> List.of(
+                "fleet:view",        "fleet:create",
+                "fleet:edit",        "fleet:delete",
+                "maintenance:view",  "maintenance:create",
+                "maintenance:edit",
+                "admin:dashboard:view",
+                "admin:users:view",  "admin:users:edit",
+                "admin:fleet:view",
+                "admin:support:view", "admin:support:manage"
+            );
+            case DEALER -> List.of(
+                "fleet:view",
+                "maintenance:view"
+            );
+            case USER -> List.of(
+                "fleet:view",
+    "fleet:create",
+    "fleet:edit",
+    "fleet:delete",
+    "maintenance:view",
+    "maintenance:create",
+    "maintenance:edit"
+            );
+        };
+    }
+
     private String sha256(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");

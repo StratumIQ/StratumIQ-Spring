@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DASH } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import { useOEMs } from "../hooks/useEquipment";
 import {
   Field, Input, Select, Toggle, SaveBtn, SectionCard, FormGrid, FormRow, useToast,

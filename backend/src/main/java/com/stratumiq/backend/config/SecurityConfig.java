@@ -60,6 +60,15 @@ public class SecurityConfig {
                 // Health check — replaces app.get("/", ...)
                 .requestMatchers("/").permitAll()
 
+                // OpenAPI / Swagger UI
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                // Uploaded assets (fleet images)
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+
+                // Admin API — role enforced at method level too
+                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
                 // ── Everything else needs valid JWT ────────────
                 // Replaces: router.use(authenticate) in fleet/dashboard routes
                 .anyRequest().authenticated()

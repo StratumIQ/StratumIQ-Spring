@@ -15,9 +15,21 @@ export function safeFloat(v: string | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
+const TOKEN_KEY = "token";
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function removeToken(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 export function riskColor(level: string): string {

@@ -12,7 +12,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DASH, BRAND } from "@/lib/constants";
+import PageShell from "../../layout/PageShell";
+import GlassCard from "../../ui/GlassCard";
+import Button from "../../ui/Button";
+import ImageUpload from "../../ui/ImageUpload";
 import { useRegisterEquipment } from "../hooks/useFleet";
+import { notify } from "@/lib/toast";
 import type { CreateEquipmentPayload, EquipmentCategory, EquipmentStatus } from "@/types/fleet";
 
 // ── Field wrapper ──────────────────────────────────────────────
@@ -53,12 +58,12 @@ export default function RegisterFleet() {
 
   const [form, setForm] = useState<CreateEquipmentPayload>({
     name:          "",
-    category:      "crusher",
+    category:      "CRUSHER",
     serial_number: "",
     brand:         "",
     model:         "",
     make_year:     undefined,
-    status:        "active",
+    status:        "ACTIVE",
     running_hours: 0,
     location:      "",
     engine_type:   "",
@@ -109,9 +114,14 @@ export default function RegisterFleet() {
     if (form.document_url?.trim())  payload.document_url  = form.document_url.trim();
 
     try {
-      await mutate(payload, eq => router.push(`/dashboard/fleet/${eq.id}`));
+      await mutate(payload, (eq) => {
+        notify.success("Fleet asset registered successfully");
+        router.push(`/dashboard/fleet/${eq.id}`);
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      const msg = err instanceof Error ? err.message : "Unable to save fleet";
+      setError(msg);
+      notify.error(msg);
     }
   };
 
@@ -122,43 +132,30 @@ export default function RegisterFleet() {
   });
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto" }}>
-
-      {/* Back */}
-      <button
-        onClick={() => router.back()}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: DASH.text3, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", marginBottom: 24, fontWeight: 500 }}
-        onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = BRAND.orange)}
-        onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = DASH.text3)}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M19 12H5M12 5l-7 7 7 7" strokeLinecap="round"/>
-        </svg>
-        Back to Fleet
-      </button>
-
-      <div style={{ background: DASH.surface, border: `1px solid ${DASH.border}`, borderRadius: 16, overflow: "hidden", boxShadow: DASH.shadowMd }}>
-
-        {/* Header strip */}
-        <div style={{ height: 4, background: `linear-gradient(90deg, ${BRAND.orange}, ${BRAND.orangeHover})` }} />
-
-        <div style={{ padding: "28px 32px" }}>
-          <div style={{ marginBottom: 24 }}>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: DASH.text, letterSpacing: "-0.03em", marginBottom: 4 }}>
-              Register Equipment
-            </h1>
-            <p style={{ fontSize: 13, color: DASH.text3 }}>
-              Only Name and Category are required. Fill the rest now or later.
-            </p>
-          </div>
-
+    <PageShell
+      title="Register Fleet Asset"
+      description="Add a new machine to your operational fleet"
+      breadcrumbs={[
+        { label: "Fleet", href: "/dashboard/fleet" },
+        { label: "New Asset" },
+      ]}
+      maxWidth={720}
+      footer={
+        <>
+          <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
+          <Button type="submit" form="register-fleet-form" loading={loading}>
+            Register Equipment
+          </Button>
+        </>
+      }
+    >
+      <GlassCard padding="lg" className="d-form-card">
+          <form id="register-fleet-form" onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {error && (
-            <div style={{ padding: "10px 14px", background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 9, fontSize: 13, color: "#DC2626", marginBottom: 20 }}>
+            <div className="d-alert d-alert-red" style={{ marginBottom: 20 }}>
               {error}
             </div>
           )}
-
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
 
             {/* ── Section: Identity ── */}
             <SectionHeader>Identity</SectionHeader>
@@ -169,11 +166,11 @@ export default function RegisterFleet() {
 
               <Field label="Category" required>
                 <select value={form.category} onChange={set("category")} {...f("category")}>
-                  <option value="crusher">Crusher</option>
-                  <option value="screener">Screener</option>
-                  <option value="conveyor">Conveyor</option>
-                  <option value="mobile_plant">Mobile Plant</option>
-                  <option value="other">Other</option>
+                  <option value="CRUSHER">Crusher</option>
+<option value="SCREENER">Screener</option>
+<option value="CONVEYOR">Conveyor</option>
+<option value="MOBILE_PLANT">Mobile Plant</option>
+<option value="OTHER">Other</option>
                 </select>
               </Field>
 
@@ -199,10 +196,10 @@ export default function RegisterFleet() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
               <Field label="Initial Status">
                 <select value={form.status} onChange={set("status")} {...f("status")}>
-                  <option value="active">Active</option>
-                  <option value="idle">Idle</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="retired">Retired</option>
+                  <option value="ACTIVE">Active</option>
+<option value="IDLE">Idle</option>
+<option value="MAINTENANCE">Maintenance</option>
+<option value="RETIRED">Retired</option>
                 </select>
               </Field>
 
@@ -242,37 +239,21 @@ export default function RegisterFleet() {
             {/* ── Section: Media ── */}
             <SectionHeader>Media & Documents</SectionHeader>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
-              <Field label="Image URL" hint="Direct link to equipment photo">
-                <input type="url" value={form.image_url ?? ""} onChange={set("image_url")} placeholder="https://…" {...f("image_url")} />
+              <Field label="Equipment Photo" hint="Upload a photo of the asset">
+                <ImageUpload
+                  value={form.image_url}
+                  onChange={(url) => setForm((prev) => ({ ...prev, image_url: url ?? "" }))}
+                />
               </Field>
 
-              <Field label="Document URL" hint="Manual or service guide link">
+              <Field label="Document URL" hint="Optional link to manual or service guide">
                 <input type="url" value={form.document_url ?? ""} onChange={set("document_url")} placeholder="https://…" {...f("document_url")} />
               </Field>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button type="button" className="btn-secondary" onClick={() => router.back()}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? (
-                  <>
-                    <svg style={{ animation: "spin 1s linear infinite" }} width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3"/>
-                      <path d="M12 2a10 10 0 0110 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-                    </svg>
-                    Registering…
-                  </>
-                ) : "Register Equipment"}
-              </button>
-            </div>
           </form>
-        </div>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+      </GlassCard>
+    </PageShell>
   );
 }
 

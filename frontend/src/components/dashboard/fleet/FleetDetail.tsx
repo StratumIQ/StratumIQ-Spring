@@ -10,8 +10,26 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DASH, BRAND } from "@/lib/constants";
+import {
+  Eye,
+  Clock,
+  Wrench,
+  Package,
+  BarChart3,
+  Pencil,
+  Trash2,
+  Download,
+  User,
+  Banknote,
+  Loader2,
+} from "lucide-react";
+import { DASH, BRAND, resolveAssetUrl } from "@/lib/constants";
 import { safeFloat } from "@/lib/utils";
+import PageShell from "../layout/PageShell";
+import GlassCard from "../ui/GlassCard";
+import Button from "../ui/Button";
+import Tabs, { type TabItem } from "../ui/Tabs";
+import Skeleton from "../ui/Skeleton";
 import {
   useEquipmentDetail, useUpdateStatus, useUpdateHours,
   useDeleteEquipment, useServiceRecords, useOperations,
@@ -25,16 +43,16 @@ import ConfirmDeleteModal from "./modals/ConfirmDeleteModal";
 import PartsTab from "./tabs/PartsTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import type { EquipmentStatus, ServiceRecord, OperationLog } from "@/types/fleet";
+import { notify } from "@/lib/toast";
 
 type Tab = "overview" | "operations" | "maintenance" | "parts" | "analytics";
 
-// Tab configuration
-const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  { key: "overview", label: "Overview", icon: <Icons.View size={14} /> },
-  { key: "operations", label: "Operations", icon: <Icons.Clock size={14} /> },
-  { key: "maintenance", label: "Maintenance", icon: <Icons.Maintenance size={14} /> },
-  { key: "parts", label: "Parts", icon: <Icons.Parts size={14} /> },
-  { key: "analytics", label: "Analytics", icon: <Icons.Analytics size={14} /> },
+const TABS: TabItem<Tab>[] = [
+  { id: "overview", label: "Overview", icon: <Eye size={14} /> },
+  { id: "operations", label: "Operations", icon: <Clock size={14} /> },
+  { id: "maintenance", label: "Maintenance", icon: <Wrench size={14} /> },
+  { id: "parts", label: "Parts", icon: <Package size={14} /> },
+  { id: "analytics", label: "Analytics", icon: <BarChart3 size={14} /> },
 ];
 
 export default function FleetDetail({ id }: { id: number }) {
@@ -51,7 +69,7 @@ export default function FleetDetail({ id }: { id: number }) {
   // Load saved tab from localStorage
   useEffect(() => {
     const savedTab = localStorage.getItem(`fleet_tab_${id}`) as Tab;
-    if (savedTab && TABS.some(t => t.key === savedTab)) {
+    if (savedTab && TABS.some((t) => t.id === savedTab)) {
       setActiveTab(savedTab);
     }
   }, [id]);
@@ -65,8 +83,12 @@ export default function FleetDetail({ id }: { id: number }) {
   const handleDeleteClick = () => setShowDeleteModal(true);
   const handleDeleteConfirm = async () => {
     try {
-      await removeAsset(id, () => router.push("/dashboard/fleet"));
-    } catch {
+      await removeAsset(id, () => {
+        notify.success("Fleet asset removed");
+        router.push("/dashboard/fleet");
+      });
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to delete fleet asset");
       refetch();
       setShowDeleteModal(false);
     }
@@ -75,8 +97,14 @@ export default function FleetDetail({ id }: { id: number }) {
 
   const handleStatusChange = async (newStatus: EquipmentStatus) => {
     try {
-      await changeStatus(id, { status: newStatus }, () => refetch());
-    } catch { refetch(); }
+      await changeStatus(id, { status: newStatus }, () => {
+        refetch();
+        notify.success("Fleet status updated");
+      });
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to update status");
+      refetch();
+    }
   };
 
   if (loading) return <DetailSkeleton />;
@@ -88,163 +116,92 @@ export default function FleetDetail({ id }: { id: number }) {
 
   return (
     <>
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 16px" }}>
-
-        {/* Breadcrumb */}
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12.5, color: DASH.text3, marginBottom: 20 }}>
-          <button onClick={() => router.push("/dashboard")} style={{ background: "none", border: "none", cursor: "pointer", color: DASH.text3, fontFamily: "inherit", fontSize: 12.5, display: "flex", alignItems: "center", gap: 4 }}>
-            <Icons.Dashboard size={12} /> Home
-          </button>
-          <Icons.ChevronRight size={10} />
-          <button onClick={() => router.push("/dashboard/fleet")} style={{ background: "none", border: "none", cursor: "pointer", color: DASH.text3, fontFamily: "inherit", fontSize: 12.5, display: "flex", alignItems: "center", gap: 4 }}>
-            <Icons.Fleet size={12} /> My Fleet
-          </button>
-          <Icons.ChevronRight size={10} />
-          <span style={{ color: DASH.text, fontWeight: 600, wordBreak: "break-word" }}>{eq.name}</span>
-        </div>
-
-        {/* Image banner */}
-        <div style={{ position: "relative", height: 220, borderRadius: 16, overflow: "hidden", background: "linear-gradient(135deg, #EDE7E3, #E5DDD8)", marginBottom: 0 }}>
-          {eq.image_url ? (
-            <img src={eq.image_url} alt={eq.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>
-              <Icons.Image size={80} />
-            </div>
-          )}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)" }} />
-
-          <div style={{ position: "absolute", bottom: 20, left: 24 }}>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", marginBottom: 2 }}>{eq.name}</h1>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <Icons.Equipment size={12} />
-              {[eq.brand, eq.model].filter(Boolean).join(" · ") || "No model info"}
-            </p>
-          </div>
-
-          {/* Top-right actions */}
-          <div style={{ position: "absolute", top: 14, right: 14, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <div style={{ position: "relative" }}>
-              <select
-                style={{ height: 34, fontSize: 12, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.92)", color: "#111827", fontFamily: "inherit", padding: "0 28px 0 12px", cursor: "pointer", fontWeight: 700, appearance: "none" }}
-                value={eq.status}
-                onChange={e => handleStatusChange(e.target.value as EquipmentStatus)}
-              >
-                <option value="active">● Active</option>
-                <option value="idle">● Idle</option>
-                <option value="maintenance">● Maintenance</option>
-                <option value="retired">● Retired</option>
-              </select>
-              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#6B7280" }}>
-                <Icons.ChevronDown size={12} />
-              </span>
-            </div>
-
-            <button onClick={() => router.push(`/dashboard/fleet/${id}/edit`)}
-              style={{ height: 34, padding: "0 14px", borderRadius: 8, background: "rgba(255,255,255,0.92)", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
-              <Icons.Edit size={14} /> Edit
-            </button>
-
-            <button onClick={handleDeleteClick} disabled={deleting}
-              style={{ height: 34, padding: "0 14px", borderRadius: 8, background: "rgba(220,38,38,0.85)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
-              <Icons.Delete size={14} /> {deleting ? "Removing…" : "Delete"}
-            </button>
-
+      <PageShell
+        title={eq.name}
+        description={[eq.brand, eq.model].filter(Boolean).join(" · ") || "Fleet asset"}
+        breadcrumbs={[
+          { label: "Fleet", href: "/dashboard/fleet" },
+          { label: eq.name },
+        ]}
+        maxWidth={1000}
+        actions={
+          <div className="d-page-actions">
+            <select
+              className="d-select d-fleet-status-select"
+              value={eq.status}
+              onChange={(e) => handleStatusChange(e.target.value as EquipmentStatus)}
+              aria-label="Asset status"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="IDLE">Idle</option>
+              <option value="MAINTENANCE">Maintenance</option>
+              <option value="RETIRED">Retired</option>
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Pencil size={14} />}
+              onClick={() => router.push(`/dashboard/fleet/${id}/edit`)}
+            >
+              Edit
+            </Button>
             {eq.document_url && (
-              <a href={eq.document_url} target="_blank" rel="noreferrer"
-                style={{ height: 34, padding: "0 14px", display: "inline-flex", alignItems: "center", borderRadius: 8, background: "rgba(255,255,255,0.92)", fontSize: 12, fontWeight: 700, textDecoration: "none", color: "#111827", gap: 6 }}>
-                <Icons.Download size={14} /> Export
+              <a href={eq.document_url} target="_blank" rel="noreferrer">
+                <Button variant="ghost" size="sm" icon={<Download size={14} />}>
+                  Export
+                </Button>
               </a>
             )}
-          </div>
-        </div>
-
-        {/* Responsive Tab Bar - Wraps on mobile */}
-        <div style={{ 
-          display: "flex", 
-          flexWrap: "wrap",
-          gap: 6,
-          background: DASH.surface, 
-          borderBottom: `1px solid ${DASH.border}`,
-          padding: "8px 0",
-          marginTop: 4,
-        }}>
-          {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => handleTabChange(tab.key)}
-              style={{
-                padding: "8px 18px",
-                borderRadius: 40,
-                background: activeTab === tab.key ? BRAND.orange : "transparent",
-                border: `1px solid ${activeTab === tab.key ? BRAND.orange : DASH.border}`,
-                color: activeTab === tab.key ? "#fff" : DASH.text3,
-                fontSize: 13,
-                fontWeight: activeTab === tab.key ? 600 : 500,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== tab.key) {
-                  e.currentTarget.style.borderColor = BRAND.orange + "40";
-                  e.currentTarget.style.color = DASH.text;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== tab.key) {
-                  e.currentTarget.style.borderColor = DASH.border;
-                  e.currentTarget.style.color = DASH.text3;
-                }
-              }}
+            <Button
+              variant="danger"
+              size="sm"
+              icon={<Trash2 size={14} />}
+              onClick={handleDeleteClick}
+              loading={deleting}
             >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
+              Delete
+            </Button>
+          </div>
+        }
+        footer={
+          <>
+            <Button variant="outline" onClick={() => router.push("/dashboard/parts")}>
+              Find Parts
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/dashboard/maintenance")}>
+              Find Service
+            </Button>
+          </>
+        }
+      >
+        <GlassCard padding="none" className="d-fleet-detail-hero">
+          {eq.image_url ? (
+            <img src={resolveAssetUrl(eq.image_url) ?? eq.image_url} alt={eq.name} className="d-fleet-detail-hero-img" />
+          ) : (
+            <div className="d-fleet-detail-hero-placeholder">
+              <Icons.Image size={64} />
+            </div>
+          )}
+          <div className="d-fleet-detail-hero-overlay" />
+          <div className="d-fleet-detail-hero-badge">
+            <StatusBadge status={eq.status} />
+          </div>
+        </GlassCard>
 
-        {/* Tab content */}
-        <div style={{ 
-          background: DASH.surface, 
-          padding: "24px 20px",
-          minHeight: 400,
-        }}>
+        <Tabs tabs={TABS} value={activeTab} onChange={handleTabChange} variant="line" />
+
+        <GlassCard padding="md" className="d-tab-panel">
           {activeTab === "overview" && <OverviewTab equipment={eq} />}
           {activeTab === "operations" && (
-            <OperationsTab 
-              equipmentId={id} 
-              currentHours={currentHours} 
-              onHoursUpdated={refetch} 
-            />
+            <OperationsTab equipmentId={id} currentHours={currentHours} onHoursUpdated={refetch} />
           )}
           {activeTab === "maintenance" && <MaintenanceTab equipmentId={id} />}
           {activeTab === "parts" && <PartsTab equipment={eq} />}
           {activeTab === "analytics" && (
-            <AnalyticsTab 
-              equipment={eq} 
-              serviceRecords={serviceRecords} 
-              operations={operations} 
-            />
+            <AnalyticsTab equipment={eq} serviceRecords={serviceRecords} operations={operations} />
           )}
-        </div>
-
-        {/* Bottom action bar */}
-        <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-          <button onClick={() => router.push("/dashboard/parts")} className="btn-navy" style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Icons.Parts size={16} /> Find Parts
-          </button>
-          <button onClick={() => router.push("/dashboard/maintenance")} className="btn-navy" style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Icons.Maintenance size={16} /> Find Service
-          </button>
-          <button onClick={() => router.push("/dashboard")} className="btn-secondary" style={{ flex: 1, minWidth: 120, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Icons.Alerts size={16} /> Support
-          </button>
-        </div>
-      </div>
+        </GlassCard>
+      </PageShell>
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
@@ -270,7 +227,7 @@ function OverviewTab({ equipment: eq }: { equipment: ReturnType<typeof useEquipm
   const healthLabel = healthScore >= 70 ? "Optimal" : healthScore >= 40 ? "Attention" : "Critical";
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }} className="d-fleet-detail-grid">
       
       {/* Equipment Details */}
       <div>
@@ -364,8 +321,11 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
       }
       setShowForm(false);
       setNewHours(""); setReason(""); setNote("");
+      notify.success("Operation logged successfully");
     } catch (err) {
-      setFormErr(err instanceof Error ? err.message : "Failed to log event");
+      const msg = err instanceof Error ? err.message : "Failed to log event";
+      setFormErr(msg);
+      notify.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -424,7 +384,7 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
           {formErr && <div style={{ padding: "10px 14px", background: "rgba(220,38,38,0.08)", borderRadius: 8, fontSize: 12.5, color: "#DC2626", marginBottom: 16 }}>{formErr}</div>}
           
           <button type="submit" className="btn-primary" style={{ height: 40, fontSize: 13, display: "flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center" }} disabled={submitting}>
-            {submitting ? <Icons.Refresh size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Icons.Check size={14} />}
+            {submitting ? <Loader2 size={14} className="d-spin" /> : <Icons.Check size={14} />}
             {submitting ? "Saving..." : "Save Event"}
           </button>
         </form>
@@ -436,7 +396,7 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
       
       {!loading && operations.length === 0 && (
         <div style={{ textAlign: "center", padding: "60px 20px", color: DASH.text3 }}>
-          <Icons.Clock size={40} style={{ marginBottom: 16, opacity: 0.4 }} />
+          <span style={{ marginBottom: 16, opacity: 0.4, display: "block" }}><Icons.Clock size={40} /></span>
           <div style={{ fontSize: 14, marginBottom: 4 }}>No operations logged</div>
           <div style={{ fontSize: 12 }}>Click "Log Event" to record hours, downtime, or notes</div>
         </div>
@@ -454,6 +414,7 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
 }
 
 function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
+  const eventKey = op.event_type?.toLowerCase();
   const icons: Record<string, React.ReactNode> = {
     hours_update: <Icons.Clock size={14} />,
     downtime: <Icons.Alerts size={14} />,
@@ -461,11 +422,11 @@ function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
   };
   
   let label = "";
-  if (op.event_type === "hours_update") {
+  if (eventKey === "hours_update") {
     const hoursLogged = safeFloat(op.hours_logged);
     const totalHours = safeFloat(op.total_hours_snapshot);
     label = `Hours update: +${hoursLogged.toLocaleString()} hrs (total: ${totalHours.toLocaleString()} hrs)`;
-  } else if (op.event_type === "downtime") {
+  } else if (eventKey === "downtime") {
     label = `Downtime: ${op.downtime_reason}`;
   } else {
     label = "Note added";
@@ -491,7 +452,7 @@ function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
         flexShrink: 0, 
         color: BRAND.orange,
       }}>
-        {icons[op.event_type]}
+        {icons[eventKey ?? "note"]}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: DASH.text, marginBottom: 4 }}>{label}</div>
@@ -509,7 +470,15 @@ function OperationRow({ op, isLast }: { op: OperationLog; isLast: boolean }) {
 function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
   const { records, loading, error, saving, create, remove } = useServiceRecords(equipmentId);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", service_type: "preventive", status: "scheduled", description: "", technician_name: "", service_date: "", cost: "" });
+  const [form, setForm] = useState({
+    title: "",
+    service_type: "PREVENTIVE" as ServiceRecord["service_type"],
+    status: "SCHEDULED" as ServiceRecord["status"],
+    description: "",
+    technician_name: "",
+    service_date: "",
+    cost: "",
+  });
   const [formErr, setFormErr] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -522,15 +491,16 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
     try {
       await create({
         title: form.title.trim(),
-        service_type: form.service_type as "preventive" | "corrective" | "inspection",
-        status: form.status as "scheduled" | "in_progress" | "completed" | "overdue",
+        service_type: form.service_type,
+        status: form.status,
         description: form.description || undefined,
         technician_name: form.technician_name || undefined,
         service_date: form.service_date || undefined,
         cost: form.cost ? parseFloat(form.cost) : undefined,
       }, () => {
+        notify.success("Service record added");
         setShowForm(false);
-        setForm({ title: "", service_type: "preventive", status: "scheduled", description: "", technician_name: "", service_date: "", cost: "" });
+        setForm({ title: "", service_type: "PREVENTIVE", status: "SCHEDULED", description: "", technician_name: "", service_date: "", cost: "" });
       });
     } catch (err) {
       setFormErr(err instanceof Error ? err.message : "Failed to add record");
@@ -558,19 +528,19 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
             </div>
             <div>
               <label style={{ fontSize: 12, color: DASH.text3, fontWeight: 600, display: "block", marginBottom: 4 }}>Type *</label>
-              <select className="dash-input" value={form.service_type} onChange={e => setForm(f => ({ ...f, service_type: e.target.value }))} style={{ height: 40, fontSize: 13 }}>
-                <option value="preventive">Preventive</option>
-                <option value="corrective">Corrective</option>
-                <option value="inspection">Inspection</option>
+              <select className="dash-input" value={form.service_type} onChange={e => setForm(f => ({ ...f, service_type: e.target.value as ServiceRecord["service_type"] }))} style={{ height: 40, fontSize: 13 }}>
+                <option value="PREVENTIVE">Preventive</option>
+                <option value="CORRECTIVE">Corrective</option>
+                <option value="INSPECTION">Inspection</option>
               </select>
             </div>
             <div>
               <label style={{ fontSize: 12, color: DASH.text3, fontWeight: 600, display: "block", marginBottom: 4 }}>Status</label>
-              <select className="dash-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={{ height: 40, fontSize: 13 }}>
-                <option value="scheduled">Scheduled</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="overdue">Overdue</option>
+              <select className="dash-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ServiceRecord["status"] }))} style={{ height: 40, fontSize: 13 }}>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="OVERDUE">Overdue</option>
               </select>
             </div>
             <div>
@@ -592,7 +562,7 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
           </div>
           {formErr && <div style={{ padding: "10px 14px", background: "rgba(220,38,38,0.08)", borderRadius: 8, fontSize: 12.5, color: "#DC2626", marginBottom: 16 }}>{formErr}</div>}
           <button type="submit" className="btn-primary" style={{ height: 40, fontSize: 13, display: "flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center" }} disabled={saving}>
-            {saving ? <Icons.Refresh size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Icons.Check size={14} />}
+            {saving ? <Loader2 size={14} className="d-spin" /> : <Icons.Check size={14} />}
             {saving ? "Saving..." : "Add Record"}
           </button>
         </form>
@@ -604,7 +574,7 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
       
       {!loading && records.length === 0 && (
         <div style={{ textAlign: "center", padding: "60px 20px", color: DASH.text3 }}>
-          <Icons.Maintenance size={40} style={{ marginBottom: 16, opacity: 0.4 }} />
+          <span style={{ marginBottom: 16, opacity: 0.4, display: "block" }}><Icons.Maintenance size={40} /></span>
           <div style={{ fontSize: 14, marginBottom: 4 }}>No service records</div>
           <div style={{ fontSize: 12 }}>Click "Add Service Record" to log maintenance history</div>
         </div>
@@ -622,13 +592,23 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
 }
 
 function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelete: () => void }) {
+  const [confirming, setConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (confirm("Remove this service record? This cannot be undone.")) {
-      setIsDeleting(true);
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setIsDeleting(true);
+    try {
       await onDelete();
+      notify.success("Service record removed");
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Unable to remove service record");
+    } finally {
       setIsDeleting(false);
+      setConfirming(false);
     }
   };
 
@@ -651,12 +631,12 @@ function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelet
           )}
           {record.technician_name && (
             <span style={{ fontSize: 12, color: DASH.text3, display: "flex", alignItems: "center", gap: 4 }}>
-              👤 {record.technician_name}
+              <User size={10} /> {record.technician_name}
             </span>
           )}
           {record.cost && (
             <span style={{ fontSize: 12, color: DASH.text3, display: "flex", alignItems: "center", gap: 4 }}>
-              💰 ₹{parseFloat(record.cost).toLocaleString()}
+              <Banknote size={10} /> ₹{parseFloat(record.cost).toLocaleString()}
             </span>
           )}
           {record.hours_at_service && (
@@ -667,8 +647,8 @@ function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelet
         </div>
         {record.description && <div style={{ fontSize: 12.5, color: DASH.text3, marginTop: 4 }}>{record.description}</div>}
       </div>
-      <button onClick={handleDelete} disabled={isDeleting} style={{ background: "none", border: "none", cursor: "pointer", color: DASH.text3, padding: 4, flexShrink: 0, opacity: isDeleting ? 0.5 : 1 }} title="Remove">
-        <Icons.Delete size={16} />
+      <button onClick={handleDelete} disabled={isDeleting} style={{ background: confirming ? "rgba(220,38,38,0.1)" : "none", border: confirming ? "1px solid rgba(220,38,38,0.3)" : "none", borderRadius: 8, cursor: "pointer", color: confirming ? "#DC2626" : DASH.text3, padding: confirming ? "4px 8px" : 4, flexShrink: 0, opacity: isDeleting ? 0.5 : 1, fontSize: 11, fontWeight: 600 }} title={confirming ? "Confirm delete" : "Remove"}>
+        {confirming ? (isDeleting ? "Removing…" : "Confirm") : <Icons.Delete size={16} />}
       </button>
     </div>
   );
@@ -677,11 +657,11 @@ function ServiceRecordRow({ record, onDelete }: { record: ServiceRecord; onDelet
 // ── Helper Components ──
 function DetailSection({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: DASH.text, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${DASH.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="d-detail-section">
+      <div className="d-detail-section-title">
         {icon} {title}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
+      <div className="d-detail-section-body">{children}</div>
     </div>
   );
 }
@@ -699,18 +679,10 @@ function DetailRow({ label, value, icon }: { label: string; value: React.ReactNo
 
 function DetailSkeleton() {
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 16px" }}>
-      <div className="skeleton" style={{ height: 220, borderRadius: 16, marginBottom: 16 }} />
-      <div className="skeleton" style={{ height: 48, borderRadius: 40, marginBottom: 16 }} />
-      <div className="skeleton" style={{ height: 300, borderRadius: 12 }} />
-    </div>
+    <PageShell breadcrumbs={[{ label: "Fleet", href: "/dashboard/fleet" }]} maxWidth={1000}>
+      <Skeleton height={220} className="d-skeleton-block" />
+      <Skeleton height={48} className="d-skeleton-block d-mt-sm" />
+      <Skeleton height={300} className="d-skeleton-block d-mt-sm" />
+    </PageShell>
   );
-}
-
-// Add spin animation
-if (typeof document !== "undefined" && !document.querySelector("#fleet-spin-style")) {
-  const style = document.createElement("style");
-  style.id = "fleet-spin-style";
-  style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
-  document.head.appendChild(style);
 }

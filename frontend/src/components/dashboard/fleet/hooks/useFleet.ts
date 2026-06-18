@@ -28,22 +28,22 @@ import type {
   UpdateServiceRecordPayload,
   LogOperationPayload,
 } from "@/types/fleet";
-import {
-  registerEquipment,
-  listEquipment,
-  getFleetSummary,
-  getEquipment,
-  updateEquipment,
-  updateEquipmentStatus,
-  updateEquipmentHours,
-  deleteEquipment,
-  createServiceRecord,
-  listServiceRecords,
-  updateServiceRecord,
-  deleteServiceRecord,
-  logOperation,
-  listOperations,
-} from "../api/fleet.api";
+import { fleetApi } from "@/lib/api/fleet";
+
+const registerEquipment = fleetApi.register;
+const listEquipment = fleetApi.list;
+const getFleetSummary = fleetApi.summary;
+const getEquipment = fleetApi.get;
+const updateEquipment = fleetApi.update;
+const updateEquipmentStatus = fleetApi.updateStatus;
+const updateEquipmentHours = fleetApi.updateHours;
+const deleteEquipment = fleetApi.delete;
+const createServiceRecord = fleetApi.createServiceRecord;
+const listServiceRecords = fleetApi.listServiceRecords;
+const updateServiceRecord = fleetApi.updateServiceRecord;
+const deleteServiceRecord = fleetApi.deleteServiceRecord;
+const logOperation = fleetApi.logOperation;
+const listOperations = fleetApi.listOperations;
 
 // ── Shared async helper — extracts error message from thrown value ──
 function extractError(err: unknown): string {

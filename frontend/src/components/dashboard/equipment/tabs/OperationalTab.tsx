@@ -35,7 +35,7 @@
 
 import { useState } from "react";
 import { DASH } from "@/lib/constants";
-import { equipmentAPI } from "../api/equipment.api";
+import { equipmentApi as equipmentAPI } from "@/lib/api/equipment";
 import { useMutation } from "../hooks/useEquipment";
 import {
   Field, Input, Select, Textarea, Toggle, SaveBtn,
@@ -59,18 +59,18 @@ function LogisticsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () 
   const { show, ToastEl } = useToast();
   const { mutate, loading } = useMutation(equipmentAPI.operational.upsertLogistics);
   const id = spec.identity.equipment_id;
-  const lg = spec.operational?.logistics ?? {};
+  const lg = spec.operational?.logistics;
   const [errors, setErrors] = useState<LogisticsErrors>({});
 
   const [form, setForm] = useState({
-    shipping_mode:             lg.shipping_mode            ?? "",
-    requires_special_permit:   lg.requires_special_permit ?? false,
-    crane_capacity_required_t: String(lg.crane_capacity_required_t ?? ""),
-    installation_days:         String(lg.installation_days         ?? ""),
-    commissioning_days:        String(lg.commissioning_days        ?? ""),
-    foundation_required:       lg.foundation_required      ?? false,
-    foundation_type:           lg.foundation_type          ?? "",
-    notes:                     lg.notes                    ?? "",
+    shipping_mode:             lg?.shipping_mode            ?? "",
+    requires_special_permit:   lg?.requires_special_permit ?? false,
+    crane_capacity_required_t: String(lg?.crane_capacity_required_t ?? ""),
+    installation_days:         String(lg?.installation_days         ?? ""),
+    commissioning_days:        String(lg?.commissioning_days        ?? ""),
+    foundation_required:       lg?.foundation_required      ?? false,
+    foundation_type:           lg?.foundation_type          ?? "",
+    notes:                     lg?.notes                    ?? "",
   });
 
   const n = (v: string) => v.trim() !== "" ? Number(v) : undefined;
@@ -380,18 +380,18 @@ function EnvironmentalSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved:
   const { show, ToastEl } = useToast();
   const { mutate, loading } = useMutation(equipmentAPI.operational.upsertEnvironmental);
   const id = spec.identity.equipment_id;
-  const ev = spec.operational?.environmental ?? {};
+  const ev = spec.operational?.environmental;
   const [errors, setErrors] = useState<EnvironmentalErrors>({});
 
   const [form, setForm] = useState({
-    noise_level_db:       String(ev.noise_level_db       ?? ""),
-    dust_emission_class:  ev.dust_emission_class          ?? "",
-    fuel_consumption_lph: String(ev.fuel_consumption_lph ?? ""),
-    co2_emission_gkwh:    String(ev.co2_emission_gkwh    ?? ""),
-    vibration_class:      ev.vibration_class              ?? "",
-    water_usage_lph:      String(ev.water_usage_lph       ?? ""),
-    recyclable_parts_pct: String(ev.recyclable_parts_pct  ?? ""),
-    notes:                ev.notes                        ?? "",
+    noise_level_db:       String(ev?.noise_level_db       ?? ""),
+    dust_emission_class:  ev?.dust_emission_class          ?? "",
+    fuel_consumption_lph: String(ev?.fuel_consumption_lph ?? ""),
+    co2_emission_gkwh:    String(ev?.co2_emission_gkwh    ?? ""),
+    vibration_class:      ev?.vibration_class              ?? "",
+    water_usage_lph:      String(ev?.water_usage_lph       ?? ""),
+    recyclable_parts_pct: String(ev?.recyclable_parts_pct  ?? ""),
+    notes:                ev?.notes                        ?? "",
   });
 
   const n = (v: string) => v.trim() !== "" ? Number(v) : undefined;

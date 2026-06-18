@@ -64,6 +64,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             // Attach principal — replaces req.user = { id, role }
             AuthenticatedUser principal = new AuthenticatedUser(userId, tenantId, role);
+            System.out.println("[JWT DEBUG] Authorities: " + authorities);
             UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(principal, null, authorities);
 

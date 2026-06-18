@@ -20,10 +20,17 @@ public class GlobalExceptionHandler {
     // Replaces Joi validation error → 400 in all controllers
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidation(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-            .map(FieldError::getDefaultMessage)
-            .collect(Collectors.joining("; "));
-        return ResponseEntity.badRequest().body(Map.of("error", message));
+        Map<String, String> fields = ex.getBindingResult().getFieldErrors().stream()
+            .collect(Collectors.toMap(
+                FieldError::getField,
+                fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value",
+                (a, b) -> a
+            ));
+        return ResponseEntity.badRequest().body(Map.of(
+            "error", "Validation failed",
+            "code", "VALIDATION_ERROR",
+            "fields", fields
+        ));
     }
 
     // Replaces err.code === '23505' duplicate check in equipment.controller.js
