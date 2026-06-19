@@ -4,8 +4,11 @@ import com.stratumiq.backend.common.enums.MaintenanceStatus;
 import com.stratumiq.backend.common.enums.MaintenanceType;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+
 
 @Entity
 @Table(name = "service_records")
@@ -49,8 +52,8 @@ public class ServiceRecord {
     @Column(name = "hours_at_service")
     private Double hoursAtService;
 
-    @Column
-    private Double cost;
+    @Column(name = "cost", precision = 19, scale = 2)
+private BigDecimal cost;
 
     @Column(name = "parts_used", length = 1000)
     private String partsUsed;
