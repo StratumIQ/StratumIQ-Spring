@@ -22,6 +22,5 @@ export const authApi = {
 
   logout: () => apiClient<{ message: string }>("/auth/logout", { method: "POST" }),
 
-  profile: () =>
-    apiClient<{ user?: DashUser } & Partial<DashUser>>("/dashboard/profile", { auth: true }),
+  profile: () => apiClient<{ user?: DashUser } & Partial<DashUser>>("/dashboard/profile"),
 };

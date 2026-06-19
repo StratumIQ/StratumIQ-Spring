@@ -1,11 +1,16 @@
 package com.stratumiq.backend.security;
 
+import com.stratumiq.backend.common.enums.AccountStatus;
+import com.stratumiq.backend.entity.User;
+import com.stratumiq.backend.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,49 +27,68 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final JwtSecurityEnhancements jwtEnhancements;
+    private final UserRepository userRepo;
 
-    public JwtAuthFilter(JwtUtil jwtUtil) {
+    public JwtAuthFilter(JwtUtil jwtUtil, JwtSecurityEnhancements jwtEnhancements, UserRepository userRepo) {
         this.jwtUtil = jwtUtil;
+        this.jwtEnhancements = jwtEnhancements;
+        this.userRepo = userRepo;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain chain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                     @NonNull HttpServletResponse response,
+                                     @NonNull FilterChain chain)
             throws ServletException, IOException {
 
+        String token = null;
         String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            token = header.substring(7);
+        } else if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
 
         // No token — pass through (public routes handled by SecurityConfig)
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (token == null) {
             chain.doFilter(request, response);
             return;
         }
 
-        String token = header.substring(7);
-
         try {
             Claims claims = jwtUtil.validateAccessToken(token);
 
-            Long userId   = Long.parseLong(claims.getSubject());
-            String role   = claims.get("role", String.class);
-            Long tenantId = claims.get("tenant_id", Long.class);
+            Long userId = Long.parseLong(claims.getSubject());
 
-            // Build authorities from permissions list baked into JWT
-            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
-
-            @SuppressWarnings("unchecked")
-            List<String> permissions = (List<String>) claims.get("permissions");
-            if (permissions != null) {
-                for (String perm : permissions) {
-                    authorities.add(new SimpleGrantedAuthority("PERM_" + perm));
-                }
+            // Reject access tokens that have been explicitly blacklisted
+            if (jwtEnhancements.isBlacklisted(token)) {
+                sendError(response, 403, "Invalid token");
+                return;
             }
 
-            // Attach principal — replaces req.user = { id, role }
-            AuthenticatedUser principal = new AuthenticatedUser(userId, tenantId, role);
-            System.out.println("[JWT DEBUG] Authorities: " + authorities);
+            User user = userRepo.findById(userId).orElse(null);
+            if (user == null || user.getAccountStatus() != AccountStatus.ACTIVE) {
+                sendError(response, 403, "Account inactive");
+                return;
+            }
+
+            String currentRole = user.getRole().name();
+            Long currentTenantId = user.getTenantId();
+
+            // Build authorities from current role state in the database
+            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + currentRole));
+            for (String perm : RolePermissionProvider.permissionsForRole(user.getRole())) {
+                authorities.add(new SimpleGrantedAuthority("PERM_" + perm));
+            }
+
+            AuthenticatedUser principal = new AuthenticatedUser(userId, currentTenantId, currentRole);
             UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(principal, null, authorities);
 

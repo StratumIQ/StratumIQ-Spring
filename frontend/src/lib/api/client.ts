@@ -4,7 +4,6 @@
  */
 
 import { API_URL } from "@/lib/constants";
-import { getToken } from "@/lib/utils";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -13,7 +12,6 @@ export type ApiOptions<B = unknown> = {
   body?: B;
   headers?: Record<string, string>;
   credentials?: RequestCredentials;
-  auth?: boolean;
 };
 
 export class ApiError extends Error {
@@ -43,16 +41,13 @@ export async function apiClient<T = unknown, B = unknown>(
     body,
     headers = {},
     credentials = "include",
-    auth = false,
   } = options;
 
-  const token = auth ? getToken() : null;
   const res = await fetch(`${API_URL}${endpoint}`, {
     method,
     credentials,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -76,7 +71,7 @@ export async function apiClient<T = unknown, B = unknown>(
 /** Authenticated dashboard request */
 export function dashApi<T = unknown, B = unknown>(
   endpoint: string,
-  options: Omit<ApiOptions<B>, "auth"> = {},
+  options: ApiOptions<B> = {},
 ): Promise<T> {
-  return apiClient<T, B>(endpoint, { ...options, auth: true });
+  return apiClient<T, B>(endpoint, options);
 }

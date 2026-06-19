@@ -1,0 +1,20 @@
+server:
+  port: 5000
+
+spring:
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+
+app:
+  cors:
+    allowed-origin: ${FRONTEND_URL:https://app.example.com}
+  cookie:
+    secure: true
+    same-site: Strict
+
+jwt:
+  access:
+    expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh:
+    expiration: ${JWT_REFRESH_EXPIRATION:604800000}

@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, X, ImageIcon, Loader2, RefreshCw } from "lucide-react";
 import { notify } from "@/lib/toast";
-import { cn, getToken } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { API_URL, resolveAssetUrl } from "@/lib/constants";
 
 const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
@@ -62,10 +62,9 @@ export default function ImageUpload({
           setProgress((p) => Math.min(p + 12, 88));
         }, 120);
 
-        const token = getToken();
+        // httpOnly cookie is automatically sent with credentials: "include"
         const res = await fetch(`${API_URL}/upload`, {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           credentials: "include",
           body: form,
         });

@@ -6,7 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,9 +45,13 @@ public class FileStorageService {
         };
 
         String filename = System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8) + "." + ext;
-        Path target = uploadRoot.resolve("fleet").resolve(filename);
+        Path target = uploadRoot.resolve("fleet").resolve(filename).normalize();
+        if (!target.startsWith(uploadRoot)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid upload path");
+        }
 
         try {
+            Files.createDirectories(target.getParent());
             file.transferTo(target);
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload failed");
@@ -64,6 +71,16 @@ public class FileStorageService {
         }
         if (file.getSize() > MAX_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File exceeds 5 MB limit");
+        }
+        try (InputStream stream = file.getInputStream()) {
+            BufferedImage image = ImageIO.read(stream);
+            if (image == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid image file");
+            }
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Invalid image file");
         }
     }
 }
