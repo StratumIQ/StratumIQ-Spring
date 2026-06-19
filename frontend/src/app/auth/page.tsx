@@ -107,18 +107,16 @@ function AuthForms() {
     setLoading(true);
     try {
       const r = await authAPI.login({ email: lEmail.trim(), password: lPw });
-      if (r.accessToken) {
-        localStorage.setItem("token", r.accessToken);
-        if (remember) localStorage.setItem(REMEMBER_KEY, lEmail.trim());
-        else localStorage.removeItem(REMEMBER_KEY);
-        setSuccess(true);
-        notify.success("Signed in successfully");
-        const profile = await fetch(`${API_URL}/dashboard/profile`, {
-          headers: { Authorization: `Bearer ${r.accessToken}` },
-          credentials: "include",
-        }).then((res) => res.json()).catch(() => null);
-        router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER"));
-      }
+      // Token is now in httpOnly cookie; no need to store it
+      if (remember) localStorage.setItem(REMEMBER_KEY, lEmail.trim());
+      else localStorage.removeItem(REMEMBER_KEY);
+      setSuccess(true);
+      notify.success("Signed in successfully");
+      // Fetch profile using credentials (cookies sent automatically)
+      const profile = await fetch(`${API_URL}/dashboard/profile`, {
+        credentials: "include",
+      }).then((res) => res.json()).catch(() => null);
+      router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER"));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -173,16 +171,14 @@ function AuthForms() {
     setLoading(true);
     try {
       const r = await authAPI.verifyPhoneOTP({ userId, otp: pOtp });
-      if (r.accessToken) {
-        localStorage.setItem("token", r.accessToken);
-        setStep("done");
-        notify.success("Account activated");
-        const profile = await fetch(`${API_URL}/dashboard/profile`, {
-          headers: { Authorization: `Bearer ${r.accessToken}` },
-          credentials: "include",
-        }).then((res) => res.json()).catch(() => null);
-        setTimeout(() => router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER")), 800);
-      }
+      // Token is now in httpOnly cookie; no need to store it
+      setStep("done");
+      notify.success("Account activated");
+      // Fetch profile using credentials (cookies sent automatically)
+      const profile = await fetch(`${API_URL}/dashboard/profile`, {
+        credentials: "include",
+      }).then((res) => res.json()).catch(() => null);
+      setTimeout(() => router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER")), 800);
     } catch (err) {
       notify.error(err instanceof Error ? err.message : "Verification failed");
     } finally {

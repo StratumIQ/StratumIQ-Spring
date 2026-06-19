@@ -13,7 +13,7 @@ import { UserCtx, SidebarCtx } from "@/components/dashboard/layout/DashboardCont
 import { authApi } from "@/lib/api/auth";
 import DashboardLoader from "@/components/dashboard/layout/DashboardLoader";
 import { ApiError } from "@/lib/api/client";
-import { getToken, removeToken, setToken } from "@/lib/utils";
+import { removeToken } from "@/lib/utils";
 import { getDashboardPath, isAdminRole } from "@/lib/routing/dashboardRoutes";
 import type { DashUser } from "@/types";
 
@@ -68,25 +68,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (err instanceof ApiError && err.status === 401) {
           try {
             const refreshData = await authApi.refresh();
-            if (refreshData.accessToken) {
-              setToken(refreshData.accessToken);
-              const retry = await authApi.profile();
-              const userData = retry.user ?? retry;
-              const role = userData.role || "USER";
-              if (isAdminRole(role)) {
-                router.replace(getDashboardPath(role));
-                return;
-              }
-              setUser({
-                id: userData.id!,
-                firstName: userData.firstName || "",
-                lastName: userData.lastName || "",
-                email: userData.email!,
-                role,
-              });
-              setLoading(false);
+            // Access token is now in httpOnly cookie; no need to store it
+            const retry = await authApi.profile();
+            const userData = retry.user ?? retry;
+            const role = userData.role || "USER";
+
+            if (isAdminRole(role)) {
+              router.replace(getDashboardPath(role));
               return;
             }
+            setUser({
+              id: userData.id!,
+              firstName: userData.firstName || "",
+              lastName: userData.lastName || "",
+              email: userData.email!,
+              role,
+            });
+            setLoading(false);
+            return;
           } catch {
             /* fall through */
           }
@@ -96,12 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     }
 
-    const token = getToken();
-    if (!token) {
-      router.push("/auth");
-      return;
-    }
-
+    // Token is now in httpOnly cookie; call loadProfile which will handle auth check
     loadProfile();
     return () => {
       cancelled = true;

@@ -2,10 +2,13 @@ package com.stratumiq.backend.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 // Replaces your entire utils/jwt.js
@@ -70,11 +73,25 @@ public class JwtUtil {
             .getPayload();
     }
 
+    @PostConstruct
+    private void validateConfiguration() {
+        Assert.hasText(accessSecret, "JWT access secret must be configured");
+        Assert.hasText(refreshSecret, "JWT refresh secret must be configured");
+        Assert.isTrue(accessSecret.length() >= 32, "JWT access secret must be at least 32 characters");
+        Assert.isTrue(refreshSecret.length() >= 32, "JWT refresh secret must be at least 32 characters");
+        Assert.isTrue(accessExpiry > 0, "JWT access expiration must be positive");
+        Assert.isTrue(refreshExpiry > 0, "JWT refresh expiration must be positive");
+    }
+
+    public long getRefreshExpiryMillis() { return refreshExpiry; }
+
+    public long getAccessExpiryMillis() { return accessExpiry; }
+
     private SecretKey getAccessKey() {
-        return Keys.hmacShaKeyFor(accessSecret.getBytes());
+        return Keys.hmacShaKeyFor(accessSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     private SecretKey getRefreshKey() {
-        return Keys.hmacShaKeyFor(refreshSecret.getBytes());
+        return Keys.hmacShaKeyFor(refreshSecret.getBytes(StandardCharsets.UTF_8));
     }
 }

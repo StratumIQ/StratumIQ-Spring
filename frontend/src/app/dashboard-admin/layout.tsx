@@ -11,7 +11,7 @@ import AdminTopBar from "@/components/admin/layout/AdminTopBar";
 import QueryProvider from "@/components/dashboard/layout/QueryProvider";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { getToken, removeToken, setToken } from "@/lib/utils";
+import { removeToken } from "@/lib/utils";
 import { isAdminRole, getDashboardPath } from "@/lib/routing/dashboardRoutes";
 import type { DashUser } from "@/types";
 
@@ -101,16 +101,14 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         if (err instanceof ApiError && err.status === 401) {
           try {
             const refreshData = await authApi.refresh();
-            if (refreshData.accessToken) {
-              setToken(refreshData.accessToken);
-              const retry = await authApi.profile();
-              const userData = retry.user ?? retry;
-              const role = userData.role || "USER";
-              if (!isAdminRole(role)) { router.replace(getDashboardPath(role)); return; }
-              setUser({ id: userData.id!, firstName: userData.firstName || "", lastName: userData.lastName || "", email: userData.email!, role });
-              setLoading(false);
-              return;
-            }
+            // Access token is now in httpOnly cookie; no need to store it
+            const retry = await authApi.profile();
+            const userData = retry.user ?? retry;
+            const role = userData.role || "USER";
+            if (!isAdminRole(role)) { router.replace(getDashboardPath(role)); return; }
+            setUser({ id: userData.id!, firstName: userData.firstName || "", lastName: userData.lastName || "", email: userData.email!, role });
+            setLoading(false);
+            return;
           } catch { /* fall through */ }
         }
         removeToken();
@@ -118,8 +116,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       }
     }
 
-    const token = getToken();
-    if (!token) { router.push("/auth"); return; }
+    // Token is now in httpOnly cookie; call loadProfile which will handle auth check
     loadProfile();
     return () => { cancelled = true; };
   }, [router]);

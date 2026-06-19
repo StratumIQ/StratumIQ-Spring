@@ -15,21 +15,18 @@ export function safeFloat(v: string | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-const TOKEN_KEY = "token";
-
+// Token is now stored in httpOnly cookie by backend; no client-side storage needed
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  // Deprecated: token is in httpOnly cookie, not accessible to JS
+  return null;
 }
 
 export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
+  // Deprecated: token is set by backend in httpOnly cookie
 }
 
 export function removeToken(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
+  // Deprecated: cookie is cleared by backend on logout
 }
 
 export function riskColor(level: string): string {
@@ -60,8 +57,8 @@ export async function apiFetch<T = unknown, B = unknown>(endpoint: string, optio
 }
 
 export function dashFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-  const token = getToken();
-  return apiFetch<T>(endpoint, { ...options, headers: { Authorization: `Bearer ${token}`, ...options.headers } });
+  // Token is in httpOnly cookie; credentials: 'include' sends it automatically
+  return apiFetch<T>(endpoint, { ...options });
 }
 
 export const authAPI = {

@@ -1,10 +1,13 @@
 package com.stratumiq.backend.common.exception;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
@@ -47,6 +50,32 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(500)
             .body(Map.of("error", "Database constraint violation"));
+    }
+
+    // Handles type mismatches in path/query parameters (e.g., ?id=abc when int expected)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+            "error", "Validation failed",
+            "code", "VALIDATION_ERROR",
+            "fields", Map.of(ex.getName(), "Invalid type: expected " + ex.getRequiredType().getSimpleName())
+        ));
+    }
+
+    // Handles service-layer @Valid constraints (MethodValidationPostProcessor)
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<?> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> fields = ex.getConstraintViolations().stream()
+            .collect(Collectors.toMap(
+                cv -> cv.getPropertyPath().toString(),
+                ConstraintViolation::getMessage,
+                (a, b) -> a
+            ));
+        return ResponseEntity.badRequest().body(Map.of(
+            "error", "Validation failed",
+            "code", "VALIDATION_ERROR",
+            "fields", fields
+        ));
     }
 
     // Handles all ResponseStatusException throws from services

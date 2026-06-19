@@ -19,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
+import java.util.Objects;
 
 // Replaces: auth.service.js + otp.service.js + otp.utils.js
 @Service
@@ -29,27 +30,36 @@ public class AuthService {
     private final RefreshTokenRepository refreshRepo;
     private final BCryptPasswordEncoder  encoder;
     private final JwtUtil                jwtUtil;
+    private final com.stratumiq.backend.security.JwtSecurityEnhancements jwtEnhancements;
     private final AdminActivityLogger activityLogger;
+    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redis;
 
     public AuthService(UserRepository userRepo,
                        OtpRepository otpRepo,
                        RefreshTokenRepository refreshRepo,
                        BCryptPasswordEncoder encoder,
                        JwtUtil jwtUtil,
-                       AdminActivityLogger activityLogger) {
+                       AdminActivityLogger activityLogger,
+                       com.stratumiq.backend.security.JwtSecurityEnhancements jwtEnhancements,
+                       org.springframework.data.redis.core.RedisTemplate<String, Object> redis) {
         this.userRepo    = userRepo;
         this.otpRepo     = otpRepo;
         this.refreshRepo = refreshRepo;
         this.encoder     = encoder;
         this.jwtUtil     = jwtUtil;
         this.activityLogger = activityLogger;
+        this.jwtEnhancements = jwtEnhancements;
+        this.redis = redis;
     }
 
     // ── REGISTER ─────────────────────────────────────────────────────────
 
     @Transactional
+    @SuppressWarnings("null")
     public Map<String, Object> register(RegisterRequest req) {
         if (userRepo.existsByEmail(req.email().toLowerCase())) {
+            activityLogger.log(null, null, null, "USER_REGISTRATION_FAILED", "USER", null,
+                Map.of("email", req.email().toLowerCase(), "reason", "Email already registered"));
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Email already registered");
         }
@@ -67,9 +77,14 @@ public class AuthService {
             .createdAt(Instant.now())
             .build();
 
-        user = userRepo.save(user);
+        User savedUser = userRepo.save(user);
+        user = savedUser;
 
         String otp = createAndStoreOtp(user.getId(), OtpType.EMAIL);
+
+        // Log successful registration
+        activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "USER_REGISTERED", "USER", user.getId(),
+            Map.of("email", user.getEmail(), "firstName", user.getFirstName(), "lastName", user.getLastName()));
 
         // TODO: Replace with real email provider (Resend / SendGrid / AWS SES)
         System.out.println("[AUTH] Email OTP for " + req.email() + ": " + otp);
@@ -84,14 +99,27 @@ public class AuthService {
 
     @Transactional
     public Map<String, Object> verifyEmailOtp(VerifyOtpRequest req) {
-        verifyOtp(req.userId(), req.otp(), OtpType.EMAIL);
+        Long userId = Objects.requireNonNull(req.userId(), "userId");
+        try {
+            verifyOtp(userId, req.otp(), OtpType.EMAIL);
+        } catch (ResponseStatusException e) {
+            User user = userRepo.findById(userId).orElse(null);
+            activityLogger.log(user != null ? user.getTenantId() : null, userId, userId,
+                "OTP_VERIFICATION_FAILED", "USER", userId,
+                Map.of("otpType", "EMAIL", "reason", e.getReason()));
+            throw e;
+        }
 
-        User user = userRepo.findById(req.userId())
+        User user = userRepo.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "User not found"));
 
         user.setEmailVerified(true);
-        userRepo.save(user);
+        user = Optional.ofNullable(userRepo.save(user))
+            .orElseThrow(() -> new IllegalStateException("Failed to update verified user"));
+
+        activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "EMAIL_VERIFIED", "USER", user.getId(),
+            Map.of("email", user.getEmail()));
 
         return Map.of(
             "message",  "Email verified successfully.",
@@ -104,7 +132,12 @@ public class AuthService {
 
     @Transactional
     public void sendPhoneOtp(SendPhoneOtpRequest req) {
-        String otp = createAndStoreOtp(req.userId(), OtpType.PHONE);
+        Long userId = Objects.requireNonNull(req.userId(), "userId");
+        User user = userRepo.findById(userId).orElse(null);
+        String otp = createAndStoreOtp(userId, OtpType.PHONE);
+
+        activityLogger.log(user != null ? user.getTenantId() : null, userId, userId,
+            "PHONE_OTP_SENT", "USER", userId, Map.of("phone", req.phone()));
 
         // TODO: Replace with Twilio / MSG91 / AWS SNS
         System.out.println("[AUTH] Phone OTP for " + req.phone() + ": " + otp);
@@ -113,24 +146,47 @@ public class AuthService {
     // ── VERIFY PHONE OTP ─────────────────────────────────────────────────
 
     @Transactional
+    @SuppressWarnings("null")
     public Map<String, String> verifyPhoneOtp(VerifyOtpRequest req) {
-        verifyOtp(req.userId(), req.otp(), OtpType.PHONE);
+        Long userId = Objects.requireNonNull(req.userId(), "userId");
+        try {
+            verifyOtp(userId, req.otp(), OtpType.PHONE);
+        } catch (ResponseStatusException e) {
+            User user = userRepo.findById(userId).orElse(null);
+            activityLogger.log(user != null ? user.getTenantId() : null, userId, userId,
+                "OTP_VERIFICATION_FAILED", "USER", userId,
+                Map.of("otpType", "PHONE", "reason", e.getReason()));
+            throw e;
+        }
 
-        User user = userRepo.findById(req.userId())
+        User user = userRepo.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "User not found"));
 
         user.setPhoneVerified(true);
         user.setAccountStatus(AccountStatus.ACTIVE);
-        user = userRepo.save(user);
+        User verifiedUser = userRepo.save(user);
+        user = verifiedUser;
+
+        activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "PHONE_VERIFIED", "USER", user.getId(),
+            Map.of("phone", user.getPhone(), "accountStatus", "ACTIVE"));
 
         return issueTokens(user);
     }
 
     // ── LOGIN ─────────────────────────────────────────────────────────────
 
+    @SuppressWarnings("null")
     public Map<String, String> login(LoginRequest req) {
-        User user = userRepo.findByEmail(req.email().toLowerCase())
+        String email = req.email().toLowerCase();
+
+        // Check account/IP lockouts
+        String lockKey = "lock:login:email:" + email;
+        if (Boolean.TRUE.equals(redis.hasKey(lockKey))) {
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Account temporarily locked due to repeated failed logins");
+        }
+
+        User user = userRepo.findByEmail(email)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.UNAUTHORIZED, "Invalid email or password"));
 
@@ -140,12 +196,46 @@ public class AuthService {
         }
 
         if (!encoder.matches(req.password(), user.getPassword())) {
+            // increment failure counter
+            String failKey = "fail:login:email:" + email;
+            Long fails = redis.opsForValue().increment(failKey, 1);
+            java.time.Duration lockDuration = Objects.requireNonNull(java.time.Duration.ofMinutes(30));
+            if (fails != null && fails == 1L) redis.expire(failKey, lockDuration);
+            if (fails != null && fails >= 5) {
+                // lock account for 30 minutes
+                redis.opsForValue().set(lockKey, "1", lockDuration);
+                activityLogger.log(
+                    user.getTenantId(),
+                    user.getId(),
+                    user.getId(),
+                    "USER_LOCKOUT",
+                    "USER",
+                    user.getId(),
+                    Map.of("email", user.getEmail(), "reason", "Too many failed logins")
+                );
+                throw new ResponseStatusException(HttpStatus.LOCKED, "Account temporarily locked due to repeated failed logins");
+            }
+
+            activityLogger.log(
+                user.getTenantId(),
+                user.getId(),
+                user.getId(),
+                "USER_LOGIN",
+                "USER",
+                user.getId(),
+                Map.of("email", user.getEmail(), "status", "Failed")
+            );
+
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                 "Invalid email or password");
         }
 
+        // Successful login — reset failure counter
+        try { redis.delete("fail:login:email:" + email); } catch (Exception ignore) {}
+
         user.setLastLoginAt(Instant.now());
-        userRepo.save(user);
+        user = Optional.ofNullable(userRepo.save(user))
+            .orElseThrow(() -> new IllegalStateException("Failed to update login timestamp"));
 
         activityLogger.log(
             user.getTenantId(),
@@ -165,11 +255,9 @@ public class AuthService {
 
     // ── REFRESH ───────────────────────────────────────────────────────────
 
-    public String refresh(String refreshToken) {
-        refreshRepo.findByToken(refreshToken)
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.FORBIDDEN, "Invalid refresh token"));
-
+    @SuppressWarnings("null")
+    public Map<String, String> refresh(String refreshToken) {
+        // Validate token signature and expiry
         io.jsonwebtoken.Claims claims;
         try {
             claims = jwtUtil.validateRefreshToken(refreshToken);
@@ -178,58 +266,131 @@ public class AuthService {
                 "Refresh token expired or invalid");
         }
 
+        // Ensure token exists in persistent store (DB or Redis)
         Long userId = Long.parseLong(claims.getSubject());
+
+        // Fetch user early (needed for all audit logs)
         User user = userRepo.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.FORBIDDEN, "User not found"));
+
+        // Detect token reuse: if token is known to be revoked (used after rotation)
+        if (jwtEnhancements.isRefreshTokenRevoked(refreshToken)) {
+            // token reuse detected — revoke all user's refresh tokens and alert
+            // revoke DB tokens for user
+            try {
+                refreshRepo.deleteByUserId(userId);
+            } catch (Exception ignore) {}
+            // blacklist access tokens (best-effort)
+            jwtEnhancements.revokeRefreshToken(refreshToken);
+            activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "REFRESH_TOKEN_REUSE", "SECURITY", user.getId(), Map.of("token", "reused"));
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Refresh token reuse detected");
+        }
+
+        if (!refreshRepo.findByToken(refreshToken).isPresent() && !jwtEnhancements.isRefreshTokenPresent(refreshToken)) {
+            activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "INVALID_REFRESH_TOKEN", "SECURITY", user.getId(),
+                Map.of("email", user.getEmail(), "reason", "Token not found in store"));
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid refresh token");
+        }
 
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "User inactive");
         }
 
-        return jwtUtil.generateAccessToken(
+        // Rotate refresh token: revoke old, issue new and persist
+        try {
+            // revoke DB record if present
+            refreshRepo.deleteByToken(refreshToken);
+        } catch (Exception e) {
+            // ignore
+        }
+        jwtEnhancements.revokeRefreshToken(refreshToken, java.time.Duration.ofMillis(jwtUtil.getRefreshExpiryMillis()));
+
+        String newRefresh = jwtUtil.generateRefreshToken(user.getId());
+        RefreshToken rt = RefreshToken.builder()
+            .userId(user.getId())
+            .token(newRefresh)
+            .createdAt(java.time.Instant.now())
+            .build();
+        refreshRepo.save(rt);
+        // also store in Redis with same TTL as configured refresh expiry
+        jwtEnhancements.storeRefreshToken(newRefresh, user.getId(), java.time.Duration.ofMillis(jwtUtil.getRefreshExpiryMillis()));
+
+        // Log successful token refresh and rotation
+        activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "REFRESH_TOKEN_ROTATED", "SECURITY", user.getId(),
+            Map.of("email", user.getEmail(), "oldTokenRevoked", true, "newTokenIssued", true));
+
+        String accessToken = jwtUtil.generateAccessToken(
             user.getId(),
             user.getRole().name(),
             user.getTenantId(),
             permissionsForRole(user.getRole()),
             UUID.randomUUID().toString()
         );
+
+        return Map.of(
+            "accessToken", accessToken,
+            "refreshToken", newRefresh
+        );
     }
 
     // ── LOGOUT ────────────────────────────────────────────────────────────
 
     @Transactional
-    public void logout(String refreshToken) {
+    public void logout(String refreshToken, String accessToken, String authorizationHeader) {
+        if (accessToken != null && !accessToken.isBlank()) {
+            try {
+                io.jsonwebtoken.Claims accessClaims = jwtUtil.validateAccessToken(accessToken);
+                long remainingSeconds = Math.max(0,
+                    (accessClaims.getExpiration().getTime() - System.currentTimeMillis()) / 1000);
+                if (remainingSeconds > 0) {
+                    jwtEnhancements.blacklistAccessToken(accessToken, remainingSeconds);
+                }
+            } catch (Exception ignore) {
+                // ignore invalid or expired access token during logout
+            }
+        } else if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String headerToken = authorizationHeader.substring(7);
+            try {
+                io.jsonwebtoken.Claims accessClaims = jwtUtil.validateAccessToken(headerToken);
+                long remainingSeconds = Math.max(0,
+                    (accessClaims.getExpiration().getTime() - System.currentTimeMillis()) / 1000);
+                if (remainingSeconds > 0) {
+                    jwtEnhancements.blacklistAccessToken(headerToken, remainingSeconds);
+                }
+            } catch (Exception ignore) {
+                // ignore invalid or expired access token during logout
+            }
+        }
+
         if (refreshToken != null && !refreshToken.isBlank()) {
             try {
-                io.jsonwebtoken.Claims claims =
-                jwtUtil.validateRefreshToken(refreshToken);
-
-                Long userId =
-        Long.parseLong(claims.getSubject());
-
+                io.jsonwebtoken.Claims claims = jwtUtil.validateRefreshToken(refreshToken);
+                Long userId = Long.parseLong(claims.getSubject());
 
                 User user = userRepo.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(
+                    .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "User not found"));
 
                 activityLogger.log(
-                user.getTenantId(),
-                user.getId(),
-                user.getId(),
-                "USER_LOGOUT",
-                "USER",
-                user.getId(),
-                Map.of(
+                    user.getTenantId(),
+                    user.getId(),
+                    user.getId(),
+                    "USER_LOGOUT",
+                    "USER",
+                    user.getId(),
+                    Map.of(
                         "email", user.getEmail(),
                         "status", "SUCCESS"
-                )
-        );
-
+                    )
+                );
 
                 refreshRepo.deleteByToken(refreshToken);
+                try {
+                    jwtEnhancements.revokeRefreshToken(refreshToken, java.time.Duration.ofMillis(jwtUtil.getRefreshExpiryMillis()));
+                } catch (Exception ignore) {}
             } catch (Exception e) {
                 System.err.println("[AUTH] logout DB warn: " + e.getMessage());
             }
@@ -239,6 +400,7 @@ public class AuthService {
     // ── INTERNAL HELPERS ──────────────────────────────────────────────────
 
     @Transactional
+    @SuppressWarnings("null")
     public String createAndStoreOtp(Long userId, OtpType type) {
         otpRepo.deleteByUserIdAndType(userId, type);
 
@@ -275,9 +437,11 @@ public class AuthService {
                 "Invalid OTP.");
         }
 
-        otpRepo.deleteById(record.getId());
+        Long recordId = Objects.requireNonNull(record.getId(), "OTP record ID is missing");
+        otpRepo.deleteById(recordId);
     }
 
+    @SuppressWarnings("null")
     private Map<String, String> issueTokens(User user) {
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
@@ -287,6 +451,9 @@ public class AuthService {
             .createdAt(Instant.now())
             .build();
         refreshRepo.save(rt);
+
+        // Store refresh token in Redis for quick revocation and rotation checks
+        jwtEnhancements.storeRefreshToken(refreshToken, user.getId(), java.time.Duration.ofMillis(jwtUtil.getRefreshExpiryMillis()));
 
         String accessToken = jwtUtil.generateAccessToken(
             user.getId(),

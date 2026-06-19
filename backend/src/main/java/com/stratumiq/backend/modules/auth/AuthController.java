@@ -3,8 +3,11 @@ package com.stratumiq.backend.modules.auth;
 import com.stratumiq.backend.modules.auth.dto.*;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import java.time.Duration;
 
 import java.util.Map;
 
@@ -13,6 +16,18 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
+    @Value("${app.cookie.same-site:Lax}")
+    private String cookieSameSite;
+
+    @Value("${jwt.access.expiration:900000}")
+    private long accessExpiryMillis;
+
+    @Value("${jwt.refresh.expiration:604800000}")
+    private long refreshExpiryMillis;
 
     private final AuthService authService;
 
@@ -48,6 +63,7 @@ public class AuthController {
             HttpServletResponse response) {
         var tokens = authService.verifyPhoneOtp(req);
         setRefreshCookie(response, tokens.get("refreshToken"));
+        setAccessCookie(response, tokens.get("accessToken"));
         return ResponseEntity.ok(Map.of(
             "message",     "Account activated. Welcome to StratumIQ.",
             "accessToken", tokens.get("accessToken")
@@ -61,6 +77,7 @@ public class AuthController {
             HttpServletResponse response) {
         var tokens = authService.login(req);
         setRefreshCookie(response, tokens.get("refreshToken"));
+        setAccessCookie(response, tokens.get("accessToken"));
         return ResponseEntity.ok(Map.of(
             "message",     "Login successful.",
             "accessToken", tokens.get("accessToken")
@@ -70,23 +87,39 @@ public class AuthController {
     // GET /api/auth/refresh — reads httpOnly cookie
     @GetMapping("/refresh")
     public ResponseEntity<?> refresh(
-            @CookieValue(name = "refreshToken", required = false) String token) {
+            @CookieValue(name = "refreshToken", required = false) String token,
+            HttpServletResponse response) {
         if (token == null) {
+            clearRefreshCookie(response);
             return ResponseEntity.status(401)
                 .body(Map.of("error", "No refresh token"));
         }
-        return ResponseEntity.ok(Map.of(
-            "accessToken", authService.refresh(token)
-        ));
+
+        try {
+            var tokens = authService.refresh(token);
+            setRefreshCookie(response, tokens.get("refreshToken"));
+            setAccessCookie(response, tokens.get("accessToken"));
+            return ResponseEntity.ok(Map.of(
+                "accessToken", tokens.get("accessToken")
+            ));
+        } catch (ResponseStatusException e) {
+            clearRefreshCookie(response);
+            clearAccessCookie(response);
+            return ResponseEntity.status(e.getStatusCode())
+                .body(Map.of("error", e.getReason()));
+        }
     }
 
     // POST /api/auth/logout
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
             @CookieValue(name = "refreshToken", required = false) String token,
+            @CookieValue(name = "accessToken", required = false) String accessToken,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             HttpServletResponse response) {
-        authService.logout(token);
+        authService.logout(token, accessToken, authorizationHeader);
         clearRefreshCookie(response);
+        clearAccessCookie(response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully."));
     }
 
@@ -96,9 +129,9 @@ public class AuthController {
     private void setRefreshCookie(HttpServletResponse res, String token) {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", token)
             .httpOnly(true)
-            .secure(false)        // set true in production
-            .sameSite("Lax")      // Lax in dev — same as your Node.js config
-            .maxAge(7 * 24 * 60 * 60)
+            .secure(cookieSecure)
+            .sameSite(cookieSameSite)
+            .maxAge(Duration.ofMillis(refreshExpiryMillis).getSeconds())
             .path("/")
             .build();
         res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -107,9 +140,31 @@ public class AuthController {
     private void clearRefreshCookie(HttpServletResponse res) {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
             .httpOnly(true)
-            .secure(false)
-            .sameSite("Lax")
+            .secure(cookieSecure)
+            .sameSite(cookieSameSite)
             .maxAge(0)            // maxAge 0 = delete cookie
+            .path("/")
+            .build();
+        res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void setAccessCookie(HttpServletResponse res, String token) {
+        ResponseCookie cookie = ResponseCookie.from("accessToken", token)
+            .httpOnly(true)
+            .secure(cookieSecure)
+            .sameSite(cookieSameSite)
+            .maxAge(Duration.ofMillis(accessExpiryMillis).getSeconds())
+            .path("/")
+            .build();
+        res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearAccessCookie(HttpServletResponse res) {
+        ResponseCookie cookie = ResponseCookie.from("accessToken", "")
+            .httpOnly(true)
+            .secure(cookieSecure)
+            .sameSite(cookieSameSite)
+            .maxAge(0)
             .path("/")
             .build();
         res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
