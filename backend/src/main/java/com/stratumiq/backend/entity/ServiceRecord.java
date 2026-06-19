@@ -4,9 +4,12 @@ import com.stratumiq.backend.common.enums.MaintenanceStatus;
 import com.stratumiq.backend.common.enums.MaintenanceType;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.math.BigDecimal;
+
 
 @Entity
 @Table(name = "service_records")
@@ -47,11 +50,11 @@ public class ServiceRecord {
     @Column(name = "service_date")
     private LocalDate serviceDate;
 
-    @Column(name = "hours_at_service")
-    private Double hoursAtService;
+    @Column(name = "hours_at_service", precision = 10, scale = 1)
+    private BigDecimal hoursAtService;
 
-    @Column(name = "cost", precision = 19, scale = 2)
-private BigDecimal cost;
+    @Column(name = "cost", precision = 12, scale = 2)
+    private BigDecimal cost;
 
     @Column(name = "parts_used", length = 1000)
     private String partsUsed;
@@ -59,8 +62,8 @@ private BigDecimal cost;
     @Column(name = "next_service_date")
     private LocalDate nextServiceDate;
 
-    @Column(name = "next_service_hours")
-    private Double nextServiceHours;
+    @Column(name = "next_service_hours", precision = 10, scale = 1)
+    private BigDecimal nextServiceHours;
 
     @Column(name = "created_at", updatable = false)
     @Builder.Default

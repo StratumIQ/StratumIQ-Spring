@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import java.time.Instant;
 import java.util.*;
@@ -150,20 +151,19 @@ public class FleetService {
         long idle        = all.stream().filter(e -> e.getStatus() == EquipmentStatus.IDLE).count();
         long maintenance = all.stream().filter(e -> e.getStatus() == EquipmentStatus.MAINTENANCE).count();
         long retired     = all.stream().filter(e -> e.getStatus() == EquipmentStatus.RETIRED).count();
-        double avgHours = all.stream()
-    .map(e -> e.getRunningHours() != null
-        ? e.getRunningHours()
-        : BigDecimal.ZERO)
-    .mapToDouble(BigDecimal::doubleValue)
-    .average()
-    .orElse(0.0);
+        BigDecimal avgHours = all.stream()
+            .map(e -> e.getRunningHours() != null ? e.getRunningHours() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        avgHours = all.isEmpty()
+            ? BigDecimal.ZERO.setScale(1, RoundingMode.HALF_UP)
+            : avgHours.divide(BigDecimal.valueOf(all.size()), 1, RoundingMode.HALF_UP);
         return Map.of(
             "total",              total,
             "active",             active,
             "idle",               idle,
             "maintenance",        maintenance,
             "retired",            retired,
-            "avg_running_hours",  Math.round(avgHours * 10.0) / 10.0
+            "avg_running_hours",  avgHours
         );
     }
 

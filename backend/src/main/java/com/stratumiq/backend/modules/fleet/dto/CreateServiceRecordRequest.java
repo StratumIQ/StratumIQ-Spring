@@ -24,6 +24,6 @@ public record CreateServiceRecordRequest(
     BigDecimal cost,
     String partsUsed,
     LocalDate nextServiceDate,
-    Double nextServiceHours
+    BigDecimal nextServiceHours
 
 ) {}
