@@ -3,6 +3,7 @@ package com.stratumiq.backend.modules.fleet.dto;
 import com.stratumiq.backend.common.enums.MaintenanceStatus;
 import com.stratumiq.backend.common.enums.MaintenanceType;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 // Replaces createServiceRecordSchema from fleet.validation.js
@@ -19,10 +20,10 @@ public record CreateServiceRecordRequest(
     String description,
     String technicianName,
     LocalDate serviceDate,
-    Double hoursAtService,
-    Double cost,
+    BigDecimal hoursAtService,
+    BigDecimal cost,
     String partsUsed,
     LocalDate nextServiceDate,
-    Double nextServiceHours
+    BigDecimal nextServiceHours
 
 ) {}

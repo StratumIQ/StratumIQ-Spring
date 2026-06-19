@@ -49,11 +49,11 @@ public class ServiceRecord {
     @Column(name = "service_date")
     private LocalDate serviceDate;
 
-    @Column(name = "hours_at_service")
-    private Double hoursAtService;
+    @Column(name = "hours_at_service", precision = 10, scale = 1)
+    private BigDecimal hoursAtService;
 
-    @Column(name = "cost", precision = 19, scale = 2)
-private BigDecimal cost;
+    @Column(name = "cost", precision = 12, scale = 2)
+    private BigDecimal cost;
 
     @Column(name = "parts_used", length = 1000)
     private String partsUsed;
@@ -61,8 +61,8 @@ private BigDecimal cost;
     @Column(name = "next_service_date")
     private LocalDate nextServiceDate;
 
-    @Column(name = "next_service_hours")
-    private Double nextServiceHours;
+    @Column(name = "next_service_hours", precision = 10, scale = 1)
+    private BigDecimal nextServiceHours;
 
     @Column(name = "created_at", updatable = false)
     @Builder.Default
