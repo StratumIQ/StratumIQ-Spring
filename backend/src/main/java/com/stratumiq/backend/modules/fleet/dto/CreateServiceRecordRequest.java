@@ -20,7 +20,7 @@ public record CreateServiceRecordRequest(
     String description,
     String technicianName,
     LocalDate serviceDate,
-    BigDecimal hoursAtService,
+    Double hoursAtService,
     BigDecimal cost,
     String partsUsed,
     LocalDate nextServiceDate,
