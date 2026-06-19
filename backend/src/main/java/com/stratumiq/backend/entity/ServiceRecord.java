@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "service_records")
@@ -49,8 +50,8 @@ public class ServiceRecord {
     @Column(name = "hours_at_service")
     private Double hoursAtService;
 
-    @Column
-    private Double cost;
+    @Column(name = "cost", precision = 19, scale = 2)
+private BigDecimal cost;
 
     @Column(name = "parts_used", length = 1000)
     private String partsUsed;
