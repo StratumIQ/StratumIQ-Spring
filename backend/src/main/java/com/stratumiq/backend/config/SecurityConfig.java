@@ -63,6 +63,7 @@ public class SecurityConfig {
 
                 // ── Public routes ──────────────────────────────
                 // Replaces: no authenticate middleware on auth routes
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
 
                 // Replaces: public GETs in equipment.routes.js
