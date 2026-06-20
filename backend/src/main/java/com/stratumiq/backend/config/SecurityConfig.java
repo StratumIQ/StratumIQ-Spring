@@ -83,7 +83,7 @@ public class SecurityConfig {
                 // Replaces: router.use(authenticate) in fleet/dashboard routes
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(inputSanitizationFilter, UsernamePasswordAuthenticationFilter.class)
+            //.addFilterBefore(inputSanitizationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(rateLimitFilter, JwtAuthFilter.class);
 
