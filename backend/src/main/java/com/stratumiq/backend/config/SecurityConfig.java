@@ -1,7 +1,7 @@
 package com.stratumiq.backend.config;
 
-import com.stratumiq.backend.security.JwtAuthFilter;
 import com.stratumiq.backend.rate.RateLimitFilter;
+import com.stratumiq.backend.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,22 +13,17 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.stratumiq.backend.filter.InputSanitizationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import java.util.List;
 
-// Replaces:
-//   1. app.use(cors({...}))           from app.js
-//   2. router.use(authenticate)       from all route files
-//   3. Public GET routes in equipment from equipment.routes.js
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity   // enables @PreAuthorize on controller methods
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${app.cors.allowed-origin}")
@@ -37,104 +32,140 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, RateLimitFilter rateLimitFilter) {
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            RateLimitFilter rateLimitFilter
+    ) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.rateLimitFilter = rateLimitFilter;
     }
 
-    /**
-     * Create InputSanitizationFilter as a @Bean for manual lifecycle control.
-     * This prevents auto-registration as a servlet filter.
-     * 
-     * FIX for: "Required request body is missing" on POST endpoints
-     * 
-     * To enable this filter, uncomment line 91 in filterChain():
-     * .addFilterBefore(inputSanitizationFilter(), UsernamePasswordAuthenticationFilter.class)
-     * 
-     * IMPORTANT: Keep commented out for now. The filter's stream reading
-     * breaks @RequestBody deserialization even with ContentCachingRequestWrapper.
-     * This requires proper stream reset mechanism before re-enabling.
-     */
-    @Bean
-    public InputSanitizationFilter inputSanitizationFilter() {
-        return new InputSanitizationFilter();
-    }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
             .csrf(csrf -> csrf.disable())
+
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
             .sessionManagement(sm ->
-                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .headers(headers -> headers
-                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
-                .frameOptions(frame -> frame.deny())
-                .contentSecurityPolicy(csp -> csp.policyDirectives(
-                    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';"
-                ))
-                .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts ->
+                    hsts.includeSubDomains(true)
+                        .maxAgeInSeconds(31536000)
+                )
+                .frameOptions(frame -> frame.deny())
+                .contentSecurityPolicy(csp ->
+                    csp.policyDirectives(
+                        "default-src 'none'; " +
+                        "frame-ancestors 'none'; " +
+                        "base-uri 'none'; " +
+                        "form-action 'self'; " +
+                        "object-src 'none'; " +
+                        "script-src 'self'; " +
+                        "style-src 'self'; " +
+                        "img-src 'self' data:;"
+                    )
+                )
+                .referrerPolicy(referrer ->
+                    referrer.policy(
+                        ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER
+                    )
+                )
+            )
+
             .authorizeHttpRequests(auth -> auth
 
-                // ── Public routes ──────────────────────────────
-                // Replaces: no authenticate middleware on auth routes
+                // CORS Preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Auth APIs
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Replaces: public GETs in equipment.routes.js
-                // Health check — replaces app.get("/", ...)
+                // Health Check
                 .requestMatchers("/").permitAll()
 
-                // OpenAPI / Swagger UI
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // Swagger
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**"
+                ).permitAll()
 
-                // Uploaded assets (fleet images)
-                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                // Static Uploads
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/uploads/**"
+                ).permitAll()
 
-                // Admin API — role enforced at method level too
-                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                // Admin APIs
+                .requestMatchers("/api/admin/**")
+                .hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                // ── Everything else needs valid JWT ────────────
-                // Replaces: router.use(authenticate) in fleet/dashboard routes
+                // Everything else protected
                 .anyRequest().authenticated()
             )
-            // FIX: InputSanitizationFilter removed from auto-registration
-            // If you need it, uncomment below AND ensure stream is properly cached:
-            // .addFilterBefore(inputSanitizationFilter(), UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(rateLimitFilter, JwtAuthFilter.class);
+
+            .addFilterBefore(
+                jwtAuthFilter,
+                UsernamePasswordAuthenticationFilter.class
+            )
+
+            .addFilterAfter(
+                rateLimitFilter,
+                JwtAuthFilter.class
+            );
 
         return http.build();
     }
 
-    // Replaces app.use(cors({ origin: env.FRONTEND_URL, credentials: true }))
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOrigin));
-        config.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        ));
-        config.setAllowedHeaders(List.of(
-            "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-CSRF-Token", "X-Forwarded-For"
-        ));
-        config.setAllowCredentials(true);  // needed for cookie (refreshToken)
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+            allowedOrigin
+        ));
+
+        config.setAllowedMethods(List.of(
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
+        ));
+
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With",
+            "X-CSRF-Token",
+            "X-Forwarded-For"
+        ));
+
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
-    // Replaces bcrypt with SALT_ROUNDS=10 from hash.js
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
 
-    // Enable service-layer @Valid/@Validated constraint validation
     @Bean
-    public MethodValidationPostProcessor methodValidationPostProcessor() {
+    public static MethodValidationPostProcessor methodValidationPostProcessor() {
         return new MethodValidationPostProcessor();
     }
 }
