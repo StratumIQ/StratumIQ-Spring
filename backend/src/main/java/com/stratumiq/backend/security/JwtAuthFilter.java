@@ -16,6 +16,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +27,8 @@ import java.util.List;
 // Runs once per request, validates Bearer token, attaches user to context
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     private final JwtUtil jwtUtil;
     private final JwtSecurityEnhancements jwtEnhancements;
@@ -42,14 +46,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                      @NonNull FilterChain chain)
             throws ServletException, IOException {
 
+        String requestPath = request.getRequestURI();
+        String requestMethod = request.getMethod();
+        logger.debug("Processing request: {} {}", requestMethod, requestPath);
+
         String token = null;
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             token = header.substring(7);
+            logger.debug("Token found in Authorization header");
         } else if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("accessToken".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
                     token = cookie.getValue();
+                    logger.debug("Token found in cookie");
                     break;
                 }
             }
@@ -57,23 +67,32 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         // No token — pass through (public routes handled by SecurityConfig)
         if (token == null) {
+            logger.debug("No token provided for {} {}", requestMethod, requestPath);
             chain.doFilter(request, response);
             return;
         }
 
         try {
             Claims claims = jwtUtil.validateAccessToken(token);
-
             Long userId = Long.parseLong(claims.getSubject());
+            logger.debug("Token validated for user: {}", userId);
 
             // Reject access tokens that have been explicitly blacklisted
             if (jwtEnhancements.isBlacklisted(token)) {
+                logger.warn("Blacklisted token used for {} {}", requestMethod, requestPath);
                 sendError(response, 403, "Invalid token");
                 return;
             }
 
             User user = userRepo.findById(userId).orElse(null);
-            if (user == null || user.getAccountStatus() != AccountStatus.ACTIVE) {
+            if (user == null) {
+                logger.error("User not found in database: {}", userId);
+                sendError(response, 403, "Account not found");
+                return;
+            }
+            
+            if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+                logger.warn("Inactive account attempted access: {} ({})", user.getEmail(), user.getAccountStatus());
                 sendError(response, 403, "Account inactive");
                 return;
             }
@@ -93,11 +112,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 new UsernamePasswordAuthenticationToken(principal, null, authorities);
 
             SecurityContextHolder.getContext().setAuthentication(auth);
+            logger.debug("Authentication set for user: {} role: {}", userId, currentRole);
 
         } catch (ExpiredJwtException e) {
+            logger.warn("Expired token attempted: {}", e.getMessage());
             sendError(response, 401, "Token expired");
             return;
         } catch (Exception e) {
+            logger.error("Token validation failed", e);
             sendError(response, 403, "Invalid token");
             return;
         }

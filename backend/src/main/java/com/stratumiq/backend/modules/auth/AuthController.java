@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.Duration;
 
 import java.util.Map;
@@ -16,6 +18,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
@@ -38,6 +42,7 @@ public class AuthController {
     // POST /api/auth/register
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+        logger.info("Register request for email: {}", req.email());
         return ResponseEntity.status(201).body(authService.register(req));
     }
 
@@ -45,6 +50,7 @@ public class AuthController {
     @PostMapping("/verify-email-otp")
     public ResponseEntity<?> verifyEmailOtp(
             @Valid @RequestBody VerifyOtpRequest req) {
+        logger.info("Verify email OTP for user: {}", req.userId());
         return ResponseEntity.ok(authService.verifyEmailOtp(req));
     }
 
@@ -52,6 +58,7 @@ public class AuthController {
     @PostMapping("/send-phone-otp")
     public ResponseEntity<?> sendPhoneOtp(
             @Valid @RequestBody SendPhoneOtpRequest req) {
+        logger.info("Send phone OTP for user: {}", req.userId());
         authService.sendPhoneOtp(req);
         return ResponseEntity.ok(Map.of("message", "Phone OTP sent."));
     }
@@ -61,6 +68,7 @@ public class AuthController {
     public ResponseEntity<?> verifyPhoneOtp(
             @Valid @RequestBody VerifyOtpRequest req,
             HttpServletResponse response) {
+        logger.info("Verify phone OTP for user: {}", req.userId());
         var tokens = authService.verifyPhoneOtp(req);
         setRefreshCookie(response, tokens.get("refreshToken"));
         setAccessCookie(response, tokens.get("accessToken"));
@@ -77,6 +85,7 @@ public class AuthController {
             HttpServletResponse response) {
 
         try {
+            logger.info("Processing login request for: {}", req.email());
             var tokens = authService.login(req);
 
             setRefreshCookie(response, tokens.get("refreshToken"));
