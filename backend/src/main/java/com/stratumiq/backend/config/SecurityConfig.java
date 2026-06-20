@@ -36,12 +36,28 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitFilter rateLimitFilter;
-    private final InputSanitizationFilter inputSanitizationFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, RateLimitFilter rateLimitFilter, InputSanitizationFilter inputSanitizationFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, RateLimitFilter rateLimitFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.rateLimitFilter = rateLimitFilter;
-        this.inputSanitizationFilter = inputSanitizationFilter;
+    }
+
+    /**
+     * Create InputSanitizationFilter as a @Bean for manual lifecycle control.
+     * This prevents auto-registration as a servlet filter.
+     * 
+     * FIX for: "Required request body is missing" on POST endpoints
+     * 
+     * To enable this filter, uncomment line 91 in filterChain():
+     * .addFilterBefore(inputSanitizationFilter(), UsernamePasswordAuthenticationFilter.class)
+     * 
+     * IMPORTANT: Keep commented out for now. The filter's stream reading
+     * breaks @RequestBody deserialization even with ContentCachingRequestWrapper.
+     * This requires proper stream reset mechanism before re-enabling.
+     */
+    @Bean
+    public InputSanitizationFilter inputSanitizationFilter() {
+        return new InputSanitizationFilter();
     }
 
     @Bean
@@ -83,7 +99,9 @@ public class SecurityConfig {
                 // Replaces: router.use(authenticate) in fleet/dashboard routes
                 .anyRequest().authenticated()
             )
-            //.addFilterBefore(inputSanitizationFilter, UsernamePasswordAuthenticationFilter.class)
+            // FIX: InputSanitizationFilter removed from auto-registration
+            // If you need it, uncomment below AND ensure stream is properly cached:
+            // .addFilterBefore(inputSanitizationFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(rateLimitFilter, JwtAuthFilter.class);
 

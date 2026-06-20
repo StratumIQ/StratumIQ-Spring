@@ -4,7 +4,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
@@ -12,7 +11,18 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-@Component
+/**
+ * INPUT SANITIZATION FILTER
+ * 
+ * NOTE: This filter is NOT auto-registered as a @Component.
+ * To use it, explicitly add it to SecurityConfig.filterChain()
+ * via: .addFilterBefore(inputSanitizationFilter, UsernamePasswordAuthenticationFilter.class)
+ * 
+ * Why @Component was removed:
+ * - Causes auto-registration even when commented out in SecurityConfig
+ * - Consumes request body before Spring can deserialize @RequestBody
+ * - Breaks POST endpoints with JSON payloads (e.g., /api/auth/login)
+ */
 public class InputSanitizationFilter extends OncePerRequestFilter {
 
     @Override
