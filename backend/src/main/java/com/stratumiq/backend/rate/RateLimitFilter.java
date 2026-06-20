@@ -107,23 +107,3 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return Bucket4j.builder().addLimit(limit).build();
     }
 }
-
-            String key = "b4j:user:minute:" + userKey;
-            Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(limit, Duration.ofMinutes(1)));
-            if (!bucket.tryConsume(1)) {
-                response.setStatus(429);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Too many requests\",\"code\":\"RATE_LIMIT_EXCEEDED_USER\"}");
-                return;
-            }
-        }
-
-        filterChain.doFilter(request, response);
-    }
-
-    private Bucket newBucket(int capacity, Duration refillPeriod) {
-        Refill refill = Refill.intervally(capacity, refillPeriod);
-        Bandwidth limit = Bandwidth.classic(capacity, refill);
-        return Bucket4j.builder().addLimit(limit).build();
-    }
-}
