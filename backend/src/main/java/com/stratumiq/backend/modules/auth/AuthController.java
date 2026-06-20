@@ -75,9 +75,13 @@ public class AuthController {
 public ResponseEntity<?> login(
         @Valid @RequestBody LoginRequest req,
         HttpServletResponse response) {
+            System.out.println("LOGIN HIT");
+    System.out.println(req.email());
 
     try {
         System.out.println("LOGIN START: " + req.email());
+        System.out.println("LOGIN HIT");
+    System.out.println(req.email());
 
         var tokens = authService.login(req);
 
@@ -95,6 +99,17 @@ public ResponseEntity<?> login(
         e.printStackTrace();
         throw e;
     }
+}
+
+
+@PostMapping("/debug-login")
+public ResponseEntity<?> debugLogin(@RequestBody String body) {
+
+    System.out.println("RAW BODY = " + body);
+
+    return ResponseEntity.ok(
+        Map.of("received", body)
+    );
 }
     // GET /api/auth/refresh — reads httpOnly cookie
     @GetMapping("/refresh")
