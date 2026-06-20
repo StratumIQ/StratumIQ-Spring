@@ -71,19 +71,31 @@ public class AuthController {
     }
 
     // POST /api/auth/login
-    @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @Valid @RequestBody LoginRequest req,
-            HttpServletResponse response) {
+   @PostMapping("/login")
+public ResponseEntity<?> login(
+        @Valid @RequestBody LoginRequest req,
+        HttpServletResponse response) {
+
+    try {
+        System.out.println("LOGIN START: " + req.email());
+
         var tokens = authService.login(req);
+
+        System.out.println("LOGIN SUCCESS");
+
         setRefreshCookie(response, tokens.get("refreshToken"));
         setAccessCookie(response, tokens.get("accessToken"));
+
         return ResponseEntity.ok(Map.of(
-            "message",     "Login successful.",
+            "message", "Login successful.",
             "accessToken", tokens.get("accessToken")
         ));
-    }
 
+    } catch (Exception e) {
+        e.printStackTrace();
+        throw e;
+    }
+}
     // GET /api/auth/refresh — reads httpOnly cookie
     @GetMapping("/refresh")
     public ResponseEntity<?> refresh(
