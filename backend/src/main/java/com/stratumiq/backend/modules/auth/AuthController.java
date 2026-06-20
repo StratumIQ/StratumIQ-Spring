@@ -71,46 +71,28 @@ public class AuthController {
     }
 
     // POST /api/auth/login
-   @PostMapping("/login")
-public ResponseEntity<?> login(
-        @Valid @RequestBody LoginRequest req,
-        HttpServletResponse response) {
-            System.out.println("LOGIN HIT");
-    System.out.println(req.email());
+    @PostMapping("/login")
+    public ResponseEntity<?> login(
+            @Valid @RequestBody LoginRequest req,
+            HttpServletResponse response) {
 
-    try {
-        System.out.println("LOGIN START: " + req.email());
-        System.out.println("LOGIN HIT");
-    System.out.println(req.email());
+        try {
+            var tokens = authService.login(req);
 
-        var tokens = authService.login(req);
+            setRefreshCookie(response, tokens.get("refreshToken"));
+            setAccessCookie(response, tokens.get("accessToken"));
 
-        System.out.println("LOGIN SUCCESS");
+            return ResponseEntity.ok(Map.of(
+                "message", "Login successful.",
+                "accessToken", tokens.get("accessToken")
+            ));
 
-        setRefreshCookie(response, tokens.get("refreshToken"));
-        setAccessCookie(response, tokens.get("accessToken"));
-
-        return ResponseEntity.ok(Map.of(
-            "message", "Login successful.",
-            "accessToken", tokens.get("accessToken")
-        ));
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
-}
 
-
-@PostMapping("/debug-login")
-public ResponseEntity<?> debugLogin(@RequestBody String body) {
-
-    System.out.println("RAW BODY = " + body);
-
-    return ResponseEntity.ok(
-        Map.of("received", body)
-    );
-}
     // GET /api/auth/refresh — reads httpOnly cookie
     @GetMapping("/refresh")
     public ResponseEntity<?> refresh(
