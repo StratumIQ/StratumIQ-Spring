@@ -9,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
 //   Global 404/500 handlers in app.js
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // Replaces Joi validation error → 400 in all controllers
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -89,9 +93,28 @@ public class GlobalExceptionHandler {
     // Replaces global 500 handler in app.js
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneric(Exception ex) {
-        System.err.println("[UNHANDLED ERROR] " + ex.getMessage());
-        ex.printStackTrace();
+        // Log full exception details for production debugging
+        String errorId = "ERR-" + System.currentTimeMillis();
+        logger.error("[{}] Unhandled exception: {} - {}", 
+            errorId, 
+            ex.getClass().getSimpleName(), 
+            ex.getMessage(), 
+            ex);
+        
+        // Log root cause if available
+        if (ex.getCause() != null) {
+            logger.error("[{}] Root cause: {} - {}", 
+                errorId,
+                ex.getCause().getClass().getSimpleName(),
+                ex.getCause().getMessage());
+        }
+        
         return ResponseEntity.status(500)
-            .body(Map.of("error", "Internal server error"));
+            .body(Map.of(
+                "error", "Internal server error",
+                "errorId", errorId,
+                "type", ex.getClass().getSimpleName(),
+                "message", ex.getMessage() != null ? ex.getMessage() : "Unknown error"
+            ));
     }
 }
