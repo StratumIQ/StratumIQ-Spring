@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -24,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
 
     // simple mapping for endpoints -> limit (count, seconds)
     private final Map<String, int[]> ipLimits = Map.of(
@@ -59,10 +63,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 String key = "b4j:ip:" + match + ":" + ip;
                 Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(limit, Duration.ofSeconds(seconds)));
                 if (!bucket.tryConsume(1)) {
+                    logger.warn("Rate limit exceeded for IP {} on endpoint {}", ip, match);
                     response.setStatus(429);
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\":\"Too many requests\",\"code\":\"RATE_LIMIT_EXCEEDED\"}");
                     return;
+                } else {
+                    logger.debug("Rate limit check passed for IP {} on endpoint {}", ip, match);
                 }
             }
         }
@@ -78,6 +85,29 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (userKey != null) {
             int limit = isAdmin ? ADMIN_USER_LIMIT : API_USER_LIMIT;
+            String key = "b4j:user:minute:" + userKey;
+            Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(limit, Duration.ofMinutes(1)));
+            if (!bucket.tryConsume(1)) {
+                logger.warn("Rate limit exceeded for user {} (admin: {})", userKey, isAdmin);
+                response.setStatus(429);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Too many requests\",\"code\":\"RATE_LIMIT_EXCEEDED_USER\"}");
+                return;
+            } else {
+                logger.debug("Rate limit check passed for user {} (limit: {})", userKey, limit);
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private Bucket newBucket(int capacity, Duration refillPeriod) {
+        Refill refill = Refill.intervally(capacity, refillPeriod);
+        Bandwidth limit = Bandwidth.classic(capacity, refill);
+        return Bucket4j.builder().addLimit(limit).build();
+    }
+}
+
             String key = "b4j:user:minute:" + userKey;
             Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(limit, Duration.ofMinutes(1)));
             if (!bucket.tryConsume(1)) {

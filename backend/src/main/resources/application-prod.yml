@@ -1,11 +1,6 @@
 server:
   port: 5000
 
-spring:
-  redis:
-    host: ${REDIS_HOST:redis}
-    port: ${REDIS_PORT:6379}
-
 app:
   cors:
     allowed-origin: ${FRONTEND_URL:https://app.example.com}
