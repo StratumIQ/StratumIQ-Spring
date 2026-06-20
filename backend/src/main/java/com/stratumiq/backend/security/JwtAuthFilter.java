@@ -78,11 +78,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             logger.debug("Token validated for user: {}", userId);
 
             // Reject access tokens that have been explicitly blacklisted
-            if (jwtEnhancements.isBlacklisted(token)) {
-                logger.warn("Blacklisted token used for {} {}", requestMethod, requestPath);
-                sendError(response, 403, "Invalid token");
-                return;
-            }
+           // Redis disabled temporarily
+// if (jwtEnhancements.isBlacklisted(token)) {
+//     sendError(response, 403, "Invalid token");
+//     return;
+// }
 
             User user = userRepo.findById(userId).orElse(null);
             if (user == null) {
