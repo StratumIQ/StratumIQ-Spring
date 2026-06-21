@@ -32,9 +32,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // simple mapping for endpoints -> limit (count, seconds)
     private final Map<String, int[]> ipLimits = Map.of(
         "/api/auth/login", new int[]{5, 60},
-        "/api/auth/register", new int[]{3, 3600},
-        "/api/auth/send-phone-otp", new int[]{5, 3600},
-        "/api/auth/verify-phone-otp", new int[]{5, 3600},
+        "/api/auth/register", new int[]{100, 3600},
+        "/api/auth/send-phone-otp", new int[]{100, 3600},
+        "/api/auth/verify-phone-otp", new int[]{100, 3600},
         "/api/auth/refresh", new int[]{30, 60}
     );
 
