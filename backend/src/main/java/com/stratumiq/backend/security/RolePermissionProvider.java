@@ -19,6 +19,7 @@ public final class RolePermissionProvider {
                 "admin:dashboard:view",
                 "admin:users:view",  "admin:users:edit",
                 "admin:fleet:view",
+                "admin:activity:view",
                 "admin:support:view", "admin:support:manage"
             );
             case ADMIN -> List.of(
@@ -29,6 +30,7 @@ public final class RolePermissionProvider {
                 "admin:dashboard:view",
                 "admin:users:view",  "admin:users:edit",
                 "admin:fleet:view",
+                "admin:activity:view",
                 "admin:support:view", "admin:support:manage"
             );
             case DEALER -> List.of(

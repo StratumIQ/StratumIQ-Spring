@@ -8,6 +8,11 @@ export const adminApi = {
   recentActivities: (limit = 20) => dashApi(`/admin/dashboard/recent-activities${toQueryString({ limit })}`),
   marketingHighlights: () => dashApi("/admin/dashboard/marketing-highlights"),
 
+  listActivities: (params: Record<string, unknown> = {}) =>
+    dashApi(`/admin/activity${toQueryString(params)}`),
+  activitySummary: (days = 30) =>
+    dashApi(`/admin/activity/summary${toQueryString({ days })}`),
+
   listUsers: (params: Record<string, unknown> = {}) =>
     dashApi(`/admin/users${toQueryString(params)}`),
   getUser: (id: number) => dashApi(`/admin/users/${id}`),
