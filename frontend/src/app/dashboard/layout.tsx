@@ -10,7 +10,7 @@ import TopBar from "@/components/dashboard/layout/TopBar";
 import QueryProvider from "@/components/dashboard/layout/QueryProvider";
 import DashboardToaster from "@/components/dashboard/layout/DashboardToaster";
 import { UserCtx, SidebarCtx } from "@/components/dashboard/layout/DashboardContext";
-import { authApi } from "@/lib/api/auth";
+import { authApi, refreshSession } from "@/lib/api/auth";
 import DashboardLoader from "@/components/dashboard/layout/DashboardLoader";
 import { ApiError } from "@/lib/api/client";
 import { removeToken } from "@/lib/utils";
@@ -65,10 +65,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           try {
-            const refreshData = await authApi.refresh();
-            // Access token is now in httpOnly cookie; no need to store it
+            await refreshSession();
             const retry = await authApi.profile();
             const userData = retry.user ?? retry;
             const role = userData.role || "USER";
@@ -95,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     }
 
-    // Token is now in httpOnly cookie; call loadProfile which will handle auth check
+    // Bearer token in sessionStorage + cookies as fallback
     loadProfile();
     return () => {
       cancelled = true;

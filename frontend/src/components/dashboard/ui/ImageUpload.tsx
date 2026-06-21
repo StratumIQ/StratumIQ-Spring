@@ -6,6 +6,7 @@ import { Upload, X, ImageIcon, Loader2, RefreshCw } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { API_URL, resolveAssetUrl } from "@/lib/constants";
+import { getAccessToken } from "@/lib/auth/token";
 
 const ACCEPT = "image/jpeg,image/jpg,image/png,image/webp";
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -62,10 +63,14 @@ export default function ImageUpload({
           setProgress((p) => Math.min(p + 12, 88));
         }, 120);
 
-        // httpOnly cookie is automatically sent with credentials: "include"
+        const token = getAccessToken();
+        const uploadHeaders: Record<string, string> = {};
+        if (token) uploadHeaders.Authorization = `Bearer ${token}`;
+
         const res = await fetch(`${API_URL}/upload`, {
           method: "POST",
           credentials: "include",
+          headers: uploadHeaders,
           body: form,
         });
         window.clearInterval(tick);

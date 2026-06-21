@@ -74,7 +74,8 @@ public class AuthController {
         setAccessCookie(response, tokens.get("accessToken"));
         return ResponseEntity.ok(Map.of(
             "message",     "Account activated. Welcome to StratumIQ.",
-            "accessToken", tokens.get("accessToken")
+            "accessToken", tokens.get("accessToken"),
+            "refreshToken", tokens.get("refreshToken")
         ));
     }
 
@@ -93,7 +94,8 @@ public class AuthController {
 
             return ResponseEntity.ok(Map.of(
                 "message", "Login successful.",
-                "accessToken", tokens.get("accessToken")
+                "accessToken", tokens.get("accessToken"),
+                "refreshToken", tokens.get("refreshToken")
             ));
 
         } catch (Exception e) {
@@ -102,12 +104,26 @@ public class AuthController {
         }
     }
 
-    // GET /api/auth/refresh — reads httpOnly cookie
+    // GET /api/auth/refresh — reads httpOnly cookie (same-origin clients)
     @GetMapping("/refresh")
     public ResponseEntity<?> refresh(
             @CookieValue(name = "refreshToken", required = false) String token,
             HttpServletResponse response) {
-        if (token == null) {
+        return refreshWithToken(token, response);
+    }
+
+    // POST /api/auth/refresh — body token for cross-origin clients (Vercel → Railway)
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshPost(
+            @RequestBody(required = false) RefreshTokenRequest body,
+            @CookieValue(name = "refreshToken", required = false) String cookieToken,
+            HttpServletResponse response) {
+        String token = resolveRefreshToken(body, cookieToken);
+        return refreshWithToken(token, response);
+    }
+
+    private ResponseEntity<?> refreshWithToken(String token, HttpServletResponse response) {
+        if (token == null || token.isBlank()) {
             clearRefreshCookie(response);
             return ResponseEntity.status(401)
                 .body(Map.of("error", "No refresh token"));
@@ -118,7 +134,8 @@ public class AuthController {
             setRefreshCookie(response, tokens.get("refreshToken"));
             setAccessCookie(response, tokens.get("accessToken"));
             return ResponseEntity.ok(Map.of(
-                "accessToken", tokens.get("accessToken")
+                "accessToken", tokens.get("accessToken"),
+                "refreshToken", tokens.get("refreshToken")
             ));
         } catch (ResponseStatusException e) {
             clearRefreshCookie(response);
@@ -128,14 +145,23 @@ public class AuthController {
         }
     }
 
+    private String resolveRefreshToken(RefreshTokenRequest body, String cookieToken) {
+        if (body != null && body.refreshToken() != null && !body.refreshToken().isBlank()) {
+            return body.refreshToken();
+        }
+        return cookieToken;
+    }
+
     // POST /api/auth/logout
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
-            @CookieValue(name = "refreshToken", required = false) String token,
+            @CookieValue(name = "refreshToken", required = false) String cookieRefresh,
+            @RequestBody(required = false) RefreshTokenRequest body,
             @CookieValue(name = "accessToken", required = false) String accessToken,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             HttpServletResponse response) {
-        authService.logout(token, accessToken, authorizationHeader);
+        String refreshToken = resolveRefreshToken(body, cookieRefresh);
+        authService.logout(refreshToken, accessToken, authorizationHeader);
         clearRefreshCookie(response);
         clearAccessCookie(response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully."));

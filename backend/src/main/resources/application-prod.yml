@@ -6,7 +6,9 @@ app:
     allowed-origin: ${FRONTEND_URL:https://app.example.com}
   cookie:
     secure: true
-    same-site: Strict
+    # None required for cross-origin credentialed requests (Vercel → Railway).
+    # Primary auth uses Authorization: Bearer; cookies are a secondary fallback.
+    same-site: None
 
 jwt:
   access:

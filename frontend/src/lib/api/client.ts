@@ -4,6 +4,7 @@
  */
 
 import { API_URL } from "@/lib/constants";
+import { getAccessToken } from "@/lib/auth/token";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -32,6 +33,15 @@ export function toQueryString(params: Record<string, unknown>): string {
   return "?" + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
 }
 
+function authHeaders(headers: Record<string, string>): Record<string, string> {
+  const merged: Record<string, string> = { "Content-Type": "application/json", ...headers };
+  const token = getAccessToken();
+  if (token && !merged.Authorization) {
+    merged.Authorization = `Bearer ${token}`;
+  }
+  return merged;
+}
+
 export async function apiClient<T = unknown, B = unknown>(
   endpoint: string,
   options: ApiOptions<B> = {},
@@ -46,10 +56,7 @@ export async function apiClient<T = unknown, B = unknown>(
   const res = await fetch(`${API_URL}${endpoint}`, {
     method,
     credentials,
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
+    headers: authHeaders(headers),
     body: body ? JSON.stringify(body) : undefined,
   });
 

@@ -7,8 +7,7 @@ import {
   Eye, EyeOff, Loader2, Shield, Truck, Wrench, Sparkles,
   CheckCircle2,
 } from "lucide-react";
-import { authAPI } from "@/lib/utils";
-import { API_URL } from "@/lib/constants";
+import { authAPI, dashFetch } from "@/lib/utils";
 import { getDashboardPath } from "@/lib/routing/dashboardRoutes";
 import { notify } from "@/lib/toast";
 import AuthToaster from "@/components/auth/AuthToaster";
@@ -107,15 +106,11 @@ function AuthForms() {
     setLoading(true);
     try {
       const r = await authAPI.login({ email: lEmail.trim(), password: lPw });
-      // Token is now in httpOnly cookie; no need to store it
       if (remember) localStorage.setItem(REMEMBER_KEY, lEmail.trim());
       else localStorage.removeItem(REMEMBER_KEY);
       setSuccess(true);
       notify.success("Signed in successfully");
-      // Fetch profile using credentials (cookies sent automatically)
-      const profile = await fetch(`${API_URL}/dashboard/profile`, {
-        credentials: "include",
-      }).then((res) => res.json()).catch(() => null);
+      const profile = await dashFetch<{ role?: string; user?: { role?: string } }>("/dashboard/profile");
       router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER"));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : "Login failed");
@@ -170,14 +165,10 @@ function AuthForms() {
     if (!userId || pOtp.length < 6) { notify.error("Enter the full 6-digit code"); return; }
     setLoading(true);
     try {
-      const r = await authAPI.verifyPhoneOTP({ userId, otp: pOtp });
-      // Token is now in httpOnly cookie; no need to store it
+      await authAPI.verifyPhoneOTP({ userId, otp: pOtp });
       setStep("done");
       notify.success("Account activated");
-      // Fetch profile using credentials (cookies sent automatically)
-      const profile = await fetch(`${API_URL}/dashboard/profile`, {
-        credentials: "include",
-      }).then((res) => res.json()).catch(() => null);
+      const profile = await dashFetch<{ role?: string; user?: { role?: string } }>("/dashboard/profile");
       setTimeout(() => router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER")), 800);
     } catch (err) {
       notify.error(err instanceof Error ? err.message : "Verification failed");

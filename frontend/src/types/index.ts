@@ -2,7 +2,7 @@ export type RegisterPayload = { firstName: string; lastName: string; email: stri
 export type OTPPayload      = { userId: number; otp: string };
 export type PhonePayload    = { userId: number; phone: string };
 export type LoginPayload    = { email: string; password: string };
-export type AuthResponse    = { userId?: number; accessToken?: string; message?: string };
+export type AuthResponse    = { userId?: number; accessToken?: string; refreshToken?: string; message?: string };
 
 export type DashUser = { id: number; firstName: string; lastName: string; email: string; role: string };
 
