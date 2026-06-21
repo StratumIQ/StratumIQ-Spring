@@ -1,5 +1,11 @@
 import { API_URL } from "./constants";
 import type { RegisterPayload, OTPPayload, PhonePayload, LoginPayload, AuthResponse } from "@/types";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+} from "@/lib/auth/token";
 
 export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -15,18 +21,31 @@ export function safeFloat(v: string | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-// Token is now stored in httpOnly cookie by backend; no client-side storage needed
 export function getToken(): string | null {
-  // Deprecated: token is in httpOnly cookie, not accessible to JS
-  return null;
+  return getAccessToken();
 }
 
 export function setToken(token: string): void {
-  // Deprecated: token is set by backend in httpOnly cookie
+  setTokens(token);
 }
 
 export function removeToken(): void {
-  // Deprecated: cookie is cleared by backend on logout
+  clearTokens();
+}
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const token = getAccessToken();
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function persistAuthResponse(data: AuthResponse): void {
+  if (data.accessToken) {
+    setTokens(data.accessToken, data.refreshToken);
+  }
 }
 
 export function riskColor(level: string): string {
@@ -46,7 +65,7 @@ export async function apiFetch<T = unknown, B = unknown>(endpoint: string, optio
   const { method = "GET", body, headers = {}, credentials = "include" } = options;
   const res = await fetch(`${API_URL}${endpoint}`, {
     method, credentials,
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: authHeaders({ "Content-Type": "application/json", ...headers }),
     body:    body ? JSON.stringify(body) : undefined,
   });
   let data: unknown;
@@ -57,16 +76,35 @@ export async function apiFetch<T = unknown, B = unknown>(endpoint: string, optio
 }
 
 export function dashFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-  // Token is in httpOnly cookie; credentials: 'include' sends it automatically
   return apiFetch<T>(endpoint, { ...options });
+}
+
+async function authFetch<T = unknown, B = unknown>(
+  endpoint: string,
+  options: ApiOptions<B> = {},
+): Promise<T> {
+  const data = await apiFetch<T, B>(endpoint, options);
+  persistAuthResponse(data as AuthResponse);
+  return data;
+}
+
+async function refreshSession(): Promise<AuthResponse> {
+  const refreshToken = getRefreshToken();
+  if (refreshToken) {
+    return authFetch<AuthResponse, { refreshToken: string }>("/auth/refresh", {
+      method: "POST",
+      body: { refreshToken },
+    });
+  }
+  return authFetch<AuthResponse>("/auth/refresh");
 }
 
 export const authAPI = {
   register:       (p: RegisterPayload) => apiFetch<AuthResponse, RegisterPayload>("/auth/register", { method: "POST", body: p }),
   verifyEmailOTP: (p: OTPPayload)      => apiFetch<AuthResponse, OTPPayload>("/auth/verify-email-otp", { method: "POST", body: p }),
   sendPhoneOTP:   (p: PhonePayload)    => apiFetch<AuthResponse, PhonePayload>("/auth/send-phone-otp", { method: "POST", body: p }),
-  verifyPhoneOTP: (p: OTPPayload)      => apiFetch<AuthResponse, OTPPayload>("/auth/verify-phone-otp", { method: "POST", body: p }),
-  login:          (p: LoginPayload)    => apiFetch<AuthResponse, LoginPayload>("/auth/login", { method: "POST", body: p }),
-  refresh:        ()                   => apiFetch<AuthResponse>("/auth/refresh"),
-  logout:         ()                   => apiFetch<{ message: string }>("/auth/logout", { method: "POST" }),
+  verifyPhoneOTP: (p: OTPPayload)      => authFetch<AuthResponse, OTPPayload>("/auth/verify-phone-otp", { method: "POST", body: p }),
+  login:          (p: LoginPayload)    => authFetch<AuthResponse, LoginPayload>("/auth/login", { method: "POST", body: p }),
+  refresh:        ()                   => refreshSession(),
+  logout:         ()                   => apiFetch<{ message: string }>("/auth/logout", { method: "POST" }).finally(() => clearTokens()),
 };

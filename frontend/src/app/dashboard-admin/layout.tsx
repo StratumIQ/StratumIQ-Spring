@@ -9,7 +9,7 @@ import { Toaster } from "sonner";
 import AdminSidebar from "@/components/admin/layout/AdminSidebar";
 import AdminTopBar from "@/components/admin/layout/AdminTopBar";
 import QueryProvider from "@/components/dashboard/layout/QueryProvider";
-import { authApi } from "@/lib/api/auth";
+import { authApi, refreshSession } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { removeToken } from "@/lib/utils";
 import { isAdminRole, getDashboardPath } from "@/lib/routing/dashboardRoutes";
@@ -98,10 +98,9 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           try {
-            const refreshData = await authApi.refresh();
-            // Access token is now in httpOnly cookie; no need to store it
+            await refreshSession();
             const retry = await authApi.profile();
             const userData = retry.user ?? retry;
             const role = userData.role || "USER";
@@ -116,7 +115,6 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       }
     }
 
-    // Token is now in httpOnly cookie; call loadProfile which will handle auth check
     loadProfile();
     return () => { cancelled = true; };
   }, [router]);
