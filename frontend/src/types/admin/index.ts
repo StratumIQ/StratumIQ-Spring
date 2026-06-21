@@ -35,6 +35,39 @@ export type PaginatedUsers = {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 };
 
+export type AdminActivity = {
+  id: number;
+  tenantId: number | null;
+  userId: number | null;
+  userName: string | null;
+  userEmail: string | null;
+  actorId: number | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  action: string;
+  entityType: string | null;
+  entityId: number | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type PaginatedActivities = {
+  activities: AdminActivity[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+};
+
+export type AdminActivitySummary = {
+  days: number;
+  totalActivities: number;
+  uniqueUsers: number;
+  loginEvents: number;
+  logoutEvents: number;
+  equipmentEvents: number;
+  documentEvents: number;
+  actionBreakdown: Array<{ action: string; count: number }>;
+  topUsers: Array<{ userId: number; name: string; email: string; count: number }>;
+};
+
 export type AdminEquipment = {
   id: number;
   ownerId: number;

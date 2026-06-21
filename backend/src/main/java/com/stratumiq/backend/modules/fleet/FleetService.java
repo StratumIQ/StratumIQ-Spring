@@ -3,6 +3,7 @@ package com.stratumiq.backend.modules.fleet;
 import com.stratumiq.backend.common.enums.EquipmentStatus;
 import com.stratumiq.backend.common.enums.MaintenanceStatus;
 import com.stratumiq.backend.entity.*;
+import com.stratumiq.backend.modules.admin.service.AdminActivityLogger;
 import com.stratumiq.backend.modules.fleet.dto.*;
 import com.stratumiq.backend.repository.*;
 import org.springframework.data.domain.*;
@@ -24,13 +25,19 @@ public class FleetService {
     private final FleetEquipmentRepository    equipmentRepo;
     private final ServiceRecordRepository     serviceRecordRepo;
     private final EquipmentOperationRepository operationRepo;
+    private final UserRepository userRepo;
+    private final AdminActivityLogger activityLogger;
 
     public FleetService(FleetEquipmentRepository equipmentRepo,
                         ServiceRecordRepository serviceRecordRepo,
-                        EquipmentOperationRepository operationRepo) {
+                        EquipmentOperationRepository operationRepo,
+                        UserRepository userRepo,
+                        AdminActivityLogger activityLogger) {
         this.equipmentRepo    = equipmentRepo;
         this.serviceRecordRepo = serviceRecordRepo;
         this.operationRepo    = operationRepo;
+        this.userRepo = userRepo;
+        this.activityLogger = activityLogger;
     }
 
     // ── EQUIPMENT CRUD ────────────────────────────────────────────────────
@@ -63,7 +70,9 @@ public class FleetService {
             .createdAt(Instant.now())
             .updatedAt(Instant.now())
             .build();
-        return equipmentRepo.save(eq);
+        FleetEquipment saved = equipmentRepo.save(eq);
+        logEquipmentActivity(userId, "EQUIPMENT_ADDED", saved, Map.of("source", "fleet"));
+        return saved;
     }
 
     // Replaces listEquipment() — paginated + filtered
@@ -120,7 +129,9 @@ public class FleetService {
         if (req.documentUrl()  != null) eq.setDocumentUrl(req.documentUrl());
         eq.setUpdatedAt(Instant.now());
 
-        return equipmentRepo.save(eq);
+        FleetEquipment saved = equipmentRepo.save(eq);
+        logEquipmentActivity(userId, "EQUIPMENT_EDITED", saved, Map.of("source", "fleet"));
+        return saved;
     }
 
     // Replaces updateEquipment with { status } only
@@ -129,13 +140,17 @@ public class FleetService {
         FleetEquipment eq = findById(id, userId);
         eq.setStatus(EquipmentStatus.valueOf(status.toUpperCase()));
         eq.setUpdatedAt(Instant.now());
-        return equipmentRepo.save(eq);
+        FleetEquipment saved = equipmentRepo.save(eq);
+        logEquipmentActivity(userId, "EQUIPMENT_STATUS_UPDATED", saved,
+            Map.of("status", saved.getStatus().name()));
+        return saved;
     }
 
     // Replaces deleteEquipment()
     @Transactional
     public void deleteEquipment(Long id, Long userId) {
         FleetEquipment eq = findById(id, userId);
+        logEquipmentActivity(userId, "EQUIPMENT_DELETED", eq, Map.of("source", "fleet"));
         equipmentRepo.delete(eq);
     }
 
@@ -192,7 +207,9 @@ public class FleetService {
             .createdAt(Instant.now())
             .build();
 
-        return serviceRecordRepo.save(record);
+        ServiceRecord saved = serviceRecordRepo.save(record);
+        logServiceActivity(userId, "SERVICE_RECORD_ADDED", saved);
+        return saved;
     }
 
     // Replaces listServiceRecords()
@@ -261,7 +278,12 @@ public class FleetService {
             .loggedAt(Instant.now())
             .build();
 
-        return operationRepo.save(op);
+        EquipmentOperation saved = operationRepo.save(op);
+        String action = "hours_update".equalsIgnoreCase(req.eventType())
+            ? "EQUIPMENT_HOURS_UPDATED"
+            : "EQUIPMENT_OPERATION_LOGGED";
+        logOperationActivity(userId, action, saved);
+        return saved;
     }
 
     // Replaces listOperations()
@@ -269,5 +291,79 @@ public class FleetService {
         findById(equipmentId, userId); // verify ownership
         return operationRepo
             .findTop50ByEquipmentIdAndUserIdOrderByLoggedAtDesc(equipmentId, userId);
+    }
+
+    private void logEquipmentActivity(Long userId, String action, FleetEquipment eq, Map<String, Object> extra) {
+        Map<String, Object> metadata = equipmentMetadata(eq);
+        if (extra != null) metadata.putAll(extra);
+        activityLogger.log(
+            tenantIdForUser(userId),
+            userId,
+            userId,
+            action,
+            "EQUIPMENT",
+            eq.getId(),
+            metadata
+        );
+    }
+
+    private void logServiceActivity(Long userId, String action, ServiceRecord record) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        putIfPresent(metadata, "equipmentId", record.getEquipmentId());
+        putIfPresent(metadata, "title", record.getTitle());
+        putIfPresent(metadata, "serviceType", record.getServiceType() != null ? record.getServiceType().name() : null);
+        putIfPresent(metadata, "status", record.getStatus() != null ? record.getStatus().name() : null);
+
+        activityLogger.log(
+            tenantIdForUser(userId),
+            userId,
+            userId,
+            action,
+            "SERVICE_RECORD",
+            record.getId(),
+            metadata
+        );
+    }
+
+    private void logOperationActivity(Long userId, String action, EquipmentOperation op) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        putIfPresent(metadata, "equipmentId", op.getEquipmentId());
+        putIfPresent(metadata, "eventType", op.getEventType());
+        putIfPresent(metadata, "hoursLogged", op.getHoursLogged());
+        putIfPresent(metadata, "totalHoursSnapshot", op.getTotalHoursSnapshot());
+        putIfPresent(metadata, "downtimeReason", op.getDowntimeReason());
+
+        activityLogger.log(
+            tenantIdForUser(userId),
+            userId,
+            userId,
+            action,
+            "EQUIPMENT_OPERATION",
+            op.getId(),
+            metadata
+        );
+    }
+
+    private Map<String, Object> equipmentMetadata(FleetEquipment eq) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        putIfPresent(metadata, "name", eq.getName());
+        putIfPresent(metadata, "category", eq.getCategory() != null ? eq.getCategory().name() : null);
+        putIfPresent(metadata, "serialNumber", eq.getSerialNumber());
+        putIfPresent(metadata, "brand", eq.getBrand());
+        putIfPresent(metadata, "model", eq.getModel());
+        putIfPresent(metadata, "status", eq.getStatus() != null ? eq.getStatus().name() : null);
+        return metadata;
+    }
+
+    private void putIfPresent(Map<String, Object> metadata, String key, Object value) {
+        if (value != null) {
+            metadata.put(key, value);
+        }
+    }
+
+    private Long tenantIdForUser(Long userId) {
+        return userRepo.findById(userId)
+            .map(User::getTenantId)
+            .orElse(null);
     }
 }
