@@ -98,13 +98,46 @@ public class AdminMapper {
     }
 
     public AdminActivityResponse toActivityResponse(ActivityLog log) {
+        return toActivityResponse(log, null, null);
+    }
+
+    public AdminActivityResponse toActivityResponse(ActivityLog log, User user, User actor) {
         return new AdminActivityResponse(
             log.getId(),
+            log.getTenantId(),
+            log.getUserId(),
+            displayName(user),
+            user != null ? user.getEmail() : null,
+            log.getActorId(),
+            displayName(actor),
+            actor != null ? actor.getEmail() : null,
             log.getAction(),
             log.getEntityType(),
             log.getEntityId(),
             log.getMetadata(),
             log.getCreatedAt()
         );
+    }
+
+    private String displayName(User user) {
+        if (user == null) return null;
+        String name = ((user.getFirstName() != null ? user.getFirstName() : "") + " "
+            + (user.getLastName() != null ? user.getLastName() : "")).trim();
+        return !name.isBlank() ? name : user.getEmail();
+    }
+
+    private String activityCategory(ActivityLog log) {
+        String action = log.getAction() != null ? log.getAction() : "";
+        String entityType = log.getEntityType() != null ? log.getEntityType() : "";
+        if (action.contains("LOGIN") || action.contains("LOGOUT") || action.contains("OTP")) return "AUTH";
+        if (action.startsWith("EQUIPMENT_") || action.startsWith("SERVICE_RECORD_")
+            || "EQUIPMENT".equals(entityType) || "SERVICE_RECORD".equals(entityType)
+            || "EQUIPMENT_OPERATION".equals(entityType)) return "FLEET";
+        if (action.startsWith("TICKET_") || "SUPPORT_TICKET".equals(entityType)) return "SUPPORT";
+        if (action.contains("UPLOAD")) return "UPLOAD";
+        if ("CONFIGURATOR_OPENED".equals(action)) return "CONFIGURATOR";
+        if ("REPORT_DOWNLOADED".equals(action)) return "REPORT";
+        if (action.startsWith("USER_") || action.startsWith("PLATFORM_")) return "ADMIN";
+        return "SYSTEM";
     }
 }

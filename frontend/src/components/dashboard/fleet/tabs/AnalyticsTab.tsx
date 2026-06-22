@@ -23,6 +23,7 @@ import {
 import { Download, TrendingUp, Activity, Wrench, AlertTriangle } from "lucide-react";
 import GlassCard from "../../ui/GlassCard";
 import Button from "../../ui/Button";
+import { activityApi } from "@/lib/api/activity";
 import { BRAND, DASH } from "@/lib/constants";
 import { safeFloat } from "@/lib/utils";
 import type { FleetEquipment, ServiceRecord, OperationLog } from "@/types/fleet";
@@ -138,6 +139,15 @@ export default function AnalyticsTab({
       a.download = `${equipment.name}_analytics.json`;
       a.click();
       URL.revokeObjectURL(url);
+      void activityApi.track({
+        action: "REPORT_DOWNLOADED",
+        entityType: "EQUIPMENT",
+        entityId: equipment.id,
+        metadata: {
+          reportType: "fleet_analytics",
+          equipmentName: equipment.name,
+        },
+      }).catch(() => undefined);
     } finally {
       setExporting(false);
     }

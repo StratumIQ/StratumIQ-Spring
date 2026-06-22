@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  Activity,
   Truck,
   Headphones,
   LogOut,
@@ -20,6 +21,7 @@ const NAV = [
   { label: "Executive", href: "/dashboard-admin", icon: LayoutDashboard, exact: true },
   { label: "Users", href: "/dashboard-admin/users", icon: Users },
   { label: "Fleet", href: "/dashboard-admin/fleet", icon: Truck },
+  { label: "Activity", href: "/dashboard-admin/activity", icon: Activity },
   { label: "Support", href: "/dashboard-admin/support", icon: Headphones },
 ];
 
