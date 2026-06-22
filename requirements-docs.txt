@@ -1,4 +1,0 @@
-mkdocs
-mkdocs-material
-mkdocs-pdf-export-plugin
-pymdown-extensions
