@@ -1,8 +1,9 @@
 package com.stratumiq.backend.common.enums;
 
 public enum MarketingContentType {
-    ANNOUNCEMENT,
-    PRODUCT_UPDATE,
     NEWS,
-    BANNER
+    ANNOUNCEMENT,
+    PRODUCT_LAUNCH,
+    PROMOTIONAL_BANNER,
+    MAINTENANCE_ALERT
 }
