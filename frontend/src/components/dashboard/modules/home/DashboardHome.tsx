@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import MarketingNewsSlider from "./MarketingNewsSlider";
 import Link from "next/link";
 import {
   Truck,
@@ -134,6 +135,8 @@ export default function DashboardHome() {
           </Button>
         </GlassCard>
       )}
+
+      <MarketingNewsSlider />
 
       <GlassCard padding="lg" className="d-ai-banner">
         <div className="d-ai-banner-glow" />

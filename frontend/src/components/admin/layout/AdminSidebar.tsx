@@ -13,6 +13,7 @@ import {
   ChevronRight,
   X,
   Building2,
+  Megaphone,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";
@@ -22,6 +23,7 @@ const NAV = [
   { label: "Users", href: "/dashboard-admin/users", icon: Users },
   { label: "Fleet", href: "/dashboard-admin/fleet", icon: Truck },
   { label: "Activity", href: "/dashboard-admin/activity", icon: Activity },
+  {label: "Marketing",href: "/dashboard-admin/marketing",icon: Megaphone},
   { label: "Support", href: "/dashboard-admin/support", icon: Headphones },
 ];
 

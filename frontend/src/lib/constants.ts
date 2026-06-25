@@ -102,7 +102,7 @@ export const ALERT_CONFIG = {
 } as const;
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
 export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 
