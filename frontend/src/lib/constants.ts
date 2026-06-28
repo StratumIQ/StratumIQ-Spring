@@ -72,13 +72,42 @@ export const BLOG_POSTS = [
   { title: "Understanding Wear Parts and When to Replace Them",   excerpt: "Learn how wear parts impact crushing performance and identify the right replacement intervals.",            image: "/parts.jpg",    readTime: "6 min" },
 ] as const;
 
+/**
+ * WHY_CHOOSE_DATA — icon is a lucide icon name string.
+ * WhyChoose.tsx renders these via the ICON_MAP below.
+ * No emojis — all icons are lucide SVGs.
+ */
 export const WHY_CHOOSE_DATA = [
-  { title: "Built for Crushing & Screening",   description: "Purpose-built for quarry operations — not generic software adapted for heavy equipment.",                icon: "⚙️" },
-  { title: "Fleet-Based Intelligence",         description: "Track and manage all machines with centralized visibility, predictive alerts, and usage analytics.",   icon: "🚛" },
-  { title: "Region-Aware Services",            description: "Get matched with nearby technicians and verified service providers for fast on-site support.",         icon: "📍" },
-  { title: "Verified Dealers & Providers",     description: "Only trusted sellers and technicians — every listing is reviewed before going live.",                 icon: "✅" },
-  { title: "AI-Powered Insights",              description: "Predictive maintenance, intelligent parts planning, and AI-driven machine selection assistance.",      icon: "🤖" },
-  { title: "Enterprise-Grade Security",        description: "JWT auth, OTP verification, role-based access, and encrypted data at rest and in transit.",           icon: "🔒" },
+  {
+    title:       "Built for Crushing & Screening",
+    description: "Purpose-built for quarry operations — not generic software adapted for heavy equipment.",
+    icon:        "Settings2",
+  },
+  {
+    title:       "Fleet-Based Intelligence",
+    description: "Track and manage all machines with centralized visibility, predictive alerts, and usage analytics.",
+    icon:        "Truck",
+  },
+  {
+    title:       "Region-Aware Services",
+    description: "Get matched with nearby technicians and verified service providers for fast on-site support.",
+    icon:        "MapPin",
+  },
+  {
+    title:       "Verified Dealers & Providers",
+    description: "Only trusted sellers and technicians — every listing is reviewed before going live.",
+    icon:        "BadgeCheck",
+  },
+  {
+    title:       "AI-Powered Insights",
+    description: "Predictive maintenance, intelligent parts planning, and AI-driven machine selection assistance.",
+    icon:        "BrainCircuit",
+  },
+  {
+    title:       "Data Protection Guarantee",
+    description: "We guarantee the security of your data. Your information stays encrypted, access-controlled, and private — always.",
+    icon:        "ShieldCheck",
+  },
 ] as const;
 
 export const TESTIMONIALS = [
@@ -101,10 +130,60 @@ export const ALERT_CONFIG = {
   success:  { color: "#16A34A", bg: "rgba(22,163,74,0.08)"  },
 } as const;
 
+export const MARKETING = {
+  DASHBOARD_LIMIT: 5,
+  TYPES: ["NEWS", "ANNOUNCEMENT", "PRODUCT_LAUNCH", "PROMOTIONAL_BANNER", "MAINTENANCE_ALERT"] as const,
+  STATUSES: ["DRAFT", "PUBLISHED", "ARCHIVED", "INACTIVE"] as const,
+  STATUS_CONFIG: {
+    DRAFT:     { label: "Draft",     color: "#64748b", bg: "rgba(100,116,139,0.12)" },
+    PUBLISHED: { label: "Published", color: "#16a34a", bg: "rgba(22,163,74,0.12)"  },
+    ARCHIVED:  { label: "Archived",  color: "#d97706", bg: "rgba(217,119,6,0.12)"  },
+    INACTIVE:  { label: "Inactive",  color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  },
+  AUTO_PLAY_MS: 5000,
+  PAUSE_RESUME_DELAY_MS: 8000,
+  BANNER_ASPECT: 16 / 9,
+  THUMB_ASPECT:  4 / 3,
+} as const;
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
 export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
+/**
+ * Session Management & Timeout Configuration
+ * Must match backend values in application.yml
+ * All values in milliseconds
+ */
+export const SESSION = {
+  // Access token expiry (30 minutes)
+  ACCESS_TOKEN_EXPIRY_MS: 1800000,
+  
+  // Refresh token expiry (7 days)
+  REFRESH_TOKEN_EXPIRY_MS: 604800000,
+  
+  // Idle timeout before showing warning (25 minutes)
+  IDLE_TIMEOUT_MS: 1500000,
+  
+  // Warning duration before auto-logout (5 minutes)
+  WARNING_TIME_MS: 300000,
+  
+  // Total session timeout (idle + warning = 30 minutes)
+  TOTAL_SESSION_TIMEOUT_MS: 1800000,
+  
+  // Remember Me duration (30 days)
+  REMEMBER_ME_DURATION_MS: 2592000000,
+  
+  // Refresh token early (5 minutes before expiry)
+  REFRESH_BEFORE_EXPIRY_MS: 300000,
+  
+  // Activity debounce (only track activity every 10 seconds)
+  ACTIVITY_DEBOUNCE_MS: 10000,
+  
+  // Check for token expiry every 30 seconds
+  TOKEN_CHECK_INTERVAL_MS: 30000,
+} as const;
 
 /** Resolve relative upload paths from the backend */
 export function resolveAssetUrl(url: string | null | undefined): string | null {

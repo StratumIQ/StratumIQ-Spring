@@ -37,7 +37,7 @@ export default function PlatformOverview() {
             Everything in one system.
           </h2>
           <p className="text-gray-400 mt-4 text-lg">
-            Fleet, parts, services, and intelligent tools — unified for heavy equipment operators.
+            Fleet, parts, services, and intelligent tools — unified for heavy equipment operations.
           </p>
         </motion.div>
 

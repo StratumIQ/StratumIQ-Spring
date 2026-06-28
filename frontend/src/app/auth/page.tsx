@@ -169,7 +169,7 @@ function AuthForms() {
       setStep("done");
       notify.success("Account activated");
       const profile = await dashFetch<{ role?: string; user?: { role?: string } }>("/dashboard/profile");
-      setTimeout(() => router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER")), 800);
+      router.push(getDashboardPath(profile?.role ?? profile?.user?.role ?? "USER"));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : "Verification failed");
     } finally {
@@ -177,9 +177,8 @@ function AuthForms() {
     }
   };
 
-  const pwStr = passwordStrength(rPw);
   const pwCheck = checkPassword(rPw);
-  const regStepIndex = step.startsWith("register") ? parseInt(step.split("-")[1] ?? "1") - 1 : 0;
+  const pwStr   = passwordStrength(rPw);
 
   const renderContent = () => {
     if (step === "login") {
@@ -187,20 +186,20 @@ function AuthForms() {
         <motion.div key="login" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
           <h2>Welcome back</h2>
           <p className="auth-card-sub">Sign in to your StratumIQ workspace</p>
-          <form onSubmit={doLogin}>
+          <form onSubmit={doLogin} noValidate>
             <div className="auth-field">
               <label className="auth-label">Email address</label>
-              <input className={`auth-input ${loginErrors.email ? "auth-input--error" : ""}`} type="email" value={lEmail} onChange={(e) => setLEmail(e.target.value)} placeholder="you@company.com" />
+              <input className={`auth-input ${loginErrors.email ? "auth-input--error" : ""}`} type="email" value={lEmail} onChange={(e) => setLEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
               {loginErrors.email && <p className="auth-field-error">{loginErrors.email}</p>}
             </div>
             <div className="auth-field">
               <div className="auth-label-row">
                 <label className="auth-label">Password</label>
-                <button type="button" className="auth-link" onClick={() => notify.info("Password reset will be available soon.")}>Forgot password?</button>
+                <button type="button" className="auth-link">Forgot password?</button>
               </div>
               <div className="auth-input-wrap">
-                <input className={`auth-input has-toggle ${loginErrors.password ? "auth-input--error" : ""}`} type={showLPw ? "text" : "password"} value={lPw} onChange={(e) => setLPw(e.target.value)} placeholder="Your password" />
-                <button type="button" className="auth-eye" onClick={() => setShowLPw((p) => !p)} aria-label="Toggle password">{showLPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                <input className={`auth-input has-toggle ${loginErrors.password ? "auth-input--error" : ""}`} type={showLPw ? "text" : "password"} value={lPw} onChange={(e) => setLPw(e.target.value)} placeholder="Your password" autoComplete="current-password" />
+                <button type="button" className="auth-eye" onClick={() => setShowLPw((p) => !p)}>{showLPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
               </div>
               {loginErrors.password && <p className="auth-field-error">{loginErrors.password}</p>}
             </div>
@@ -208,8 +207,8 @@ function AuthForms() {
               <label className="auth-check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember me</label>
             </div>
             <button type="submit" className={`auth-btn ${success ? "auth-btn--success" : ""}`} disabled={loading}>
-              {loading ? <Loader2 size={16} className="auth-spin" /> : success ? <CheckCircle2 size={16} /> : null}
-              {loading ? "Signing in…" : success ? "Success" : "Sign In"}
+              {loading ? <Loader2 size={16} className="auth-spin" /> : null}
+              {loading ? "Signing in…" : success ? "Signed in" : "Sign In"}
             </button>
           </form>
           <div className="auth-divider">New to StratumIQ?</div>
@@ -218,14 +217,15 @@ function AuthForms() {
       );
     }
 
-    if (step.startsWith("register")) {
+    if (step === "register-1" || step === "register-2" || step === "register-3") {
+      const stepNum = { "register-1": 1, "register-2": 2, "register-3": 3 }[step];
       return (
         <motion.div key={step} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
           <h2>Create account</h2>
-          <p className="auth-card-sub">Step {regStepIndex + 1} of 3</p>
+          <p className="auth-card-sub">Step {stepNum} of 3 — {["Your name", "Credentials", "Phone verification"][stepNum - 1]}</p>
           <div className="auth-progress">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className={`auth-progress-seg ${i < regStepIndex ? "done" : ""} ${i === regStepIndex ? "active" : ""}`} />
+            {[1, 2, 3].map((n) => (
+              <div key={n} className={`auth-progress-seg ${n === stepNum ? "active" : n < stepNum ? "done" : ""}`} />
             ))}
           </div>
 
@@ -234,12 +234,12 @@ function AuthForms() {
               <div className="auth-grid-2">
                 <div className="auth-field">
                   <label className="auth-label">First name</label>
-                  <input className={`auth-input ${regErrors.firstName ? "auth-input--error" : ""}`} value={rFirst} onChange={(e) => setRFirst(e.target.value)} placeholder="Ramesh" />
+                  <input className={`auth-input ${regErrors.firstName ? "auth-input--error" : ""}`} type="text" value={rFirst} onChange={(e) => setRFirst(e.target.value)} placeholder="Ramesh" autoComplete="given-name" />
                   {regErrors.firstName && <p className="auth-field-error">{regErrors.firstName}</p>}
                 </div>
                 <div className="auth-field">
                   <label className="auth-label">Last name</label>
-                  <input className={`auth-input ${regErrors.lastName ? "auth-input--error" : ""}`} value={rLast} onChange={(e) => setRLast(e.target.value)} placeholder="Kumar" />
+                  <input className={`auth-input ${regErrors.lastName ? "auth-input--error" : ""}`} type="text" value={rLast} onChange={(e) => setRLast(e.target.value)} placeholder="Kumar" autoComplete="family-name" />
                   {regErrors.lastName && <p className="auth-field-error">{regErrors.lastName}</p>}
                 </div>
               </div>
@@ -366,47 +366,77 @@ export default function AuthPage() {
     <>
       <AuthToaster />
       <div className="auth-root">
+
+        {/* ── Left brand panel ─────────────────────────── */}
         <aside className="auth-brand">
           <div className="auth-brand-grid" />
           <div className="auth-brand-glow" />
+
+          {/* Logo */}
           <div className="auth-logo">
             <div className="auth-logo-mark">
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M15 6C15 4.067 13.433 2.5 11.5 2.5H8C5.515 2.5 5.515 7.5 8 7.5H11.5C13.985 7.5 13.985 12.5 11.5 12.5H7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M15 6C15 4.067 13.433 2.5 11.5 2.5H8C5.515 2.5 5.515 7.5 8 7.5H11.5C13.985 7.5 13.985 12.5 11.5 12.5H7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
             <span className="auth-logo-text">Stratum<span style={{ color: "#E8692C" }}>IQ</span></span>
           </div>
+
+          {/* Hero copy */}
           <div className="auth-hero">
             <h1>Run your quarry<br /><span>smarter, not harder</span></h1>
-            <p>Fleet intelligence, predictive maintenance, and AI copilot — unified for heavy equipment operators.</p>
-            <AuthIllustration />
-            <AuthLottie />
+            <p>Fleet intelligence, predictive maintenance, and AI copilot — unified for heavy equipment operations.</p>
           </div>
+
+          {/* Illustration — excavator HUD (sits between hero text and lottie) */}
+          <AuthIllustration />
+
+          {/* Lottie — live metrics rings (separate from hero, no overlap) */}
+          <AuthLottie />
+
+          {/* Feature list */}
           <div className="auth-features">
             {[
-              { Icon: Truck, title: "Fleet Intelligence", desc: "Real-time visibility across machines and sites." },
-              { Icon: Wrench, title: "Predictive Maintenance", desc: "AI risk scores before breakdowns happen." },
-              { Icon: Sparkles, title: "AI Copilot", desc: "Configure equipment and plan operations instantly." },
+              { Icon: Truck,    title: "Fleet Intelligence",      desc: "Real-time visibility across machines and sites." },
+              { Icon: Wrench,   title: "Predictive Maintenance",  desc: "AI risk scores before breakdowns happen." },
+              { Icon: Sparkles, title: "AI Copilot",              desc: "Configure equipment and plan operations instantly." },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="auth-feature">
                 <div className="auth-feature-icon"><Icon size={17} /></div>
-                <div><div className="auth-feature-title">{title}</div><div className="auth-feature-desc">{desc}</div></div>
+                <div>
+                  <div className="auth-feature-title">{title}</div>
+                  <div className="auth-feature-desc">{desc}</div>
+                </div>
               </div>
             ))}
           </div>
+
+          {/* Stats */}
           <div className="auth-stats">
             {[["2,400+", "Machines"], ["98.2%", "Uptime"], ["47%", "Less Downtime"]].map(([v, l]) => (
-              <div key={l} className="auth-stat"><div className="auth-stat-value">{v}</div><div className="auth-stat-label">{l}</div></div>
+              <div key={l} className="auth-stat">
+                <div className="auth-stat-value">{v}</div>
+                <div className="auth-stat-label">{l}</div>
+              </div>
             ))}
           </div>
         </aside>
+
+        {/* ── Right form panel ──────────────────────────── */}
         <main className="auth-panel">
           <div className="auth-card-wrap">
             <Suspense fallback={<div className="auth-card"><Loader2 className="auth-spin" /></div>}>
               <AuthForms />
             </Suspense>
-            <div className="auth-footer-note"><Shield size={12} /><span>JWT auth · OTP verified · Encrypted in transit</span></div>
+
+            {/* Professional security footer — no technical jargon */}
+            <div className="auth-footer-note">
+              <Shield size={12} />
+              <span>Your data is encrypted, access-controlled, and never shared</span>
+            </div>
           </div>
         </main>
+
       </div>
     </>
   );

@@ -2,7 +2,6 @@ package com.stratumiq.backend.modules.auth.dto;
 
 import jakarta.validation.constraints.*;
 
-// Replaces loginSchema from auth.validation.js
 public record LoginRequest(
 
     @NotBlank(message = "Email is required")
@@ -10,6 +9,8 @@ public record LoginRequest(
     String email,
 
     @NotBlank(message = "Password is required")
-    String password
+    String password,
+
+    Boolean rememberMe  // nullable — defaults to false via null-check in AuthService
 
 ) {}
