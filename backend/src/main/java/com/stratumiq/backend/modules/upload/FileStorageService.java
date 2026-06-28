@@ -30,6 +30,7 @@ public class FileStorageService {
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(uploadRoot.resolve("fleet"));
+            Files.createDirectories(uploadRoot.resolve("marketing"));
         } catch (IOException e) {
             throw new IllegalStateException("Could not create upload directory", e);
         }
@@ -58,6 +59,32 @@ public class FileStorageService {
         }
 
         return "/uploads/fleet/" + filename;
+    }
+
+    public String storeMarketingImage(MultipartFile file) {
+        validate(file);
+
+        String ext = switch (file.getContentType()) {
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            default -> "jpg";
+        };
+
+        String filename = System.currentTimeMillis() + "-"
+            + UUID.randomUUID().toString().substring(0, 8) + "." + ext;
+        Path target = uploadRoot.resolve("marketing").resolve(filename).normalize();
+        if (!target.startsWith(uploadRoot)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid upload path");
+        }
+
+        try {
+            Files.createDirectories(target.getParent());
+            file.transferTo(target);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload failed");
+        }
+
+        return "/uploads/marketing/" + filename;
     }
 
     private void validate(MultipartFile file) {

@@ -18,7 +18,7 @@ public final class RolePermissionProvider {
                 "maintenance:edit",
                 "admin:dashboard:view",
                 "admin:users:view",  "admin:users:edit",
-                "admin:fleet:view",
+                "admin:fleet:view",  "admin:fleet:manage",
                 "admin:activity:view",
                 "admin:support:view", "admin:support:manage"
             );
@@ -29,7 +29,7 @@ public final class RolePermissionProvider {
                 "maintenance:edit",
                 "admin:dashboard:view",
                 "admin:users:view",  "admin:users:edit",
-                "admin:fleet:view",
+                "admin:fleet:view",  "admin:fleet:manage",
                 "admin:activity:view",
                 "admin:support:view", "admin:support:manage"
             );

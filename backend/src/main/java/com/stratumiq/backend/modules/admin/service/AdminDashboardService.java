@@ -1,5 +1,6 @@
 package com.stratumiq.backend.modules.admin.service;
 
+import com.stratumiq.backend.modules.marketing.service.MarketingService;
 import com.stratumiq.backend.repository.*;
 import com.stratumiq.backend.security.AuthenticatedUser;
 import org.springframework.data.domain.PageRequest;
@@ -17,15 +18,18 @@ public class AdminDashboardService {
     private final FleetEquipmentRepository equipmentRepo;
     private final SupportTicketRepository ticketRepo;
     private final ActivityLogRepository activityLogRepo;
+    private final MarketingService marketingService;
 
     public AdminDashboardService(UserRepository userRepo,
                                  FleetEquipmentRepository equipmentRepo,
                                  SupportTicketRepository ticketRepo,
-                                 ActivityLogRepository activityLogRepo) {
+                                 ActivityLogRepository activityLogRepo,
+                                 MarketingService marketingService) {
         this.userRepo = userRepo;
         this.equipmentRepo = equipmentRepo;
         this.ticketRepo = ticketRepo;
         this.activityLogRepo = activityLogRepo;
+        this.marketingService = marketingService;
     }
 
     public Map<String, Object> getKpis(AuthenticatedUser admin) {
@@ -106,12 +110,18 @@ public class AdminDashboardService {
     }
 
     public Map<String, Object> getMarketingHighlights() {
-        return Map.of("highlights", List.of(
-            Map.of("title", "Platform Launch", "type", "ANNOUNCEMENT",
-                "summary", "StratumIQ Admin Platform is now live."),
-            Map.of("title", "Fleet Analytics", "type", "PRODUCT_UPDATE",
-                "summary", "Enhanced fleet monitoring dashboards coming soon.")
-        ));
+        var items = marketingService.getDashboardMarketing().stream()
+            .map(m -> Map.<String, Object>of(
+                "id", m.getId(),
+                "title", m.getTitle(),
+                "type", m.getType().name(),
+                "summary", m.getSubtitle() != null ? m.getSubtitle()
+                    : (m.getBody() != null ? m.getBody() : ""),
+                "status", m.getStatus().name(),
+                "isPinned", m.getIsPinned()
+            ))
+            .toList();
+        return Map.of("highlights", items);
     }
 
     private List<Map<String, Object>> toDailySeries(List<Object[]> rows) {

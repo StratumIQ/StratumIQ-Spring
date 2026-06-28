@@ -28,8 +28,11 @@ public class UploadController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> uploadImage(
             @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "folder", defaultValue = "fleet") String folder,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        String url = fileStorageService.storeFleetImage(file);
+        String url = "marketing".equalsIgnoreCase(folder)
+            ? fileStorageService.storeMarketingImage(file)
+            : fileStorageService.storeFleetImage(file);
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("fileName", file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload");
         metadata.put("fileSizeBytes", file.getSize());

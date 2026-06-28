@@ -19,6 +19,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public details?: Record<string, string>,
+    public code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -68,8 +70,13 @@ export async function apiClient<T = unknown, B = unknown>(
   }
 
   if (!res.ok) {
-    const err = data as { error?: string } | null;
-    throw new ApiError(err?.error ?? "Something went wrong", res.status);
+    const err = data as { error?: string; code?: string; fields?: Record<string, string> } | null;
+    throw new ApiError(
+      err?.error ?? "Something went wrong",
+      res.status,
+      err?.fields,
+      err?.code,
+    );
   }
 
   return data as T;

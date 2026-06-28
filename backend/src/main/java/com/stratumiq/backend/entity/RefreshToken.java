@@ -25,4 +25,27 @@ public class RefreshToken {
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    @Column(name = "expires_at", nullable = false)
+    private Instant expiresAt;
+
+    @Column(name = "remember_me")
+    @Builder.Default
+    private Boolean rememberMe = false;
+
+    @Column(name = "device_id")
+    private String deviceId;
+
+    @Column(name = "ip_address")
+    private String ipAddress;
+
+    @Column(name = "user_agent")
+    private String userAgent;
+
+    @Column(name = "is_revoked")
+    @Builder.Default
+    private Boolean isRevoked = false;
+
+    @Column(name = "revoked_at")
+    private Instant revokedAt;
 }

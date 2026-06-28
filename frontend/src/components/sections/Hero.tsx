@@ -55,11 +55,12 @@ export default function Hero() {
 
           <h1 className="text-white font-bold leading-[1.08] tracking-tight"
             style={{ fontSize: "clamp(36px, 6vw, 64px)", letterSpacing: "-0.03em", maxWidth: 700, marginBottom: 20 }}>
-            The Intelligent Platform for Heavy Equipment Operations
+            Everything in one system.
           </h1>
 
-          <p style={{ fontSize: "clamp(15px,1.4vw,18px)", color: "rgba(255,255,255,0.6)", maxWidth: 520, lineHeight: 1.7, marginBottom: 32 }}>
-            Manage fleet, parts, maintenance, and services in one unified system — built for quarry and crushing operations.
+          <p style={{ fontSize: "clamp(15px,1.4vw,18px)", color: "rgba(255,255,255,0.6)", maxWidth: 540, lineHeight: 1.7, marginBottom: 32 }}>
+            Fleet, parts, services, and intelligent tools — unified for heavy equipment{" "}
+            <span style={{ color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>operations.</span>
           </p>
 
           {/* CTAs */}

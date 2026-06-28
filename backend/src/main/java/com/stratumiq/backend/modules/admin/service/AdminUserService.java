@@ -3,6 +3,7 @@ package com.stratumiq.backend.modules.admin.service;
 import com.stratumiq.backend.common.enums.AccountStatus;
 import com.stratumiq.backend.common.enums.Role;
 import com.stratumiq.backend.entity.User;
+import com.stratumiq.backend.modules.admin.dto.CreateUserRequest;
 import com.stratumiq.backend.modules.admin.dto.UpdateUserRequest;
 import com.stratumiq.backend.modules.admin.dto.UpdateUserStatusRequest;
 import com.stratumiq.backend.modules.admin.dto.UpdateUserRoleRequest;
@@ -17,7 +18,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import java.security.SecureRandom;
+import java.time.Year;
 import java.util.*;
 
 @Service
@@ -37,6 +40,8 @@ public class AdminUserService {
         this.activityLogger = activityLogger;
         this.encoder = encoder;
     }
+
+    // ─── List ─────────────────────────────────────────────────────────────────
 
     public Map<String, Object> listUsers(AuthenticatedUser admin,
             String search, String role, String status, int page, int limit) {
@@ -62,10 +67,76 @@ public class AdminUserService {
         );
     }
 
+    // ─── Get single ───────────────────────────────────────────────────────────
+
     public AdminUserResponse getUser(AuthenticatedUser admin, Long id) {
         User user = findScopedUser(admin, id);
         return mapper.toUserResponse(user);
     }
+
+    // ─── Manual user creation by admin ────────────────────────────────────────
+
+    /**
+     * Admin manually creates a new platform user.
+     *
+     * Password formula: LastName@CurrentYear1234
+     * Example: if lastName = "Kumar" and year = 2026 → "Kumar@20261234"
+     *
+     * Username for login = email address.
+     * Account is set to ACTIVE immediately (no OTP flow for admin-created users).
+     * The generated plain-text password is returned once so admin can share it securely.
+     */
+    @Transactional
+    public Map<String, Object> createUser(AuthenticatedUser admin, CreateUserRequest req) {
+        String email = req.email().trim().toLowerCase();
+
+        if (userRepo.existsByEmail(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "A user with this email address already exists.");
+        }
+
+        // Build the standard default password: LastName@CurrentYear1234
+        String plainPassword = buildDefaultPassword(req.lastName().trim());
+
+        // Determine tenantId — SUPER_ADMIN creates platform-level users (tenantId = null),
+        // ADMIN creates users within their own tenant.
+        Long tenantId = AdminScope.isSuperAdmin(admin) ? null : admin.tenantId();
+
+        User user = User.builder()
+            .firstName(req.firstName().trim())
+            .lastName(req.lastName().trim())
+            .email(email)
+            .phone(req.phone() != null ? req.phone().trim() : null)
+            .password(encoder.encode(plainPassword))
+            .role(Role.USER)
+            .accountStatus(AccountStatus.ACTIVE)
+            .emailVerified(true)   // admin-created accounts skip verification
+            .phoneVerified(false)
+            .tenantId(tenantId)
+            .build();
+
+        user = userRepo.save(user);
+
+        activityLogger.log(
+            user.getTenantId(),
+            user.getId(),
+            admin.userId(),
+            "USER_CREATED_BY_ADMIN",
+            "USER",
+            user.getId(),
+            Map.of("email", user.getEmail(), "createdBy", admin.userId())
+        );
+
+        // Return the plain password once — admin must share it securely with the user.
+        return Map.of(
+            "user", mapper.toUserResponse(user),
+            "defaultPassword", plainPassword,
+            "message", "User created successfully. Share the default password securely. " +
+                       "The user should change it on first login."
+        );
+    }
+
+    // ─── Update profile ───────────────────────────────────────────────────────
 
     @Transactional
     public AdminUserResponse updateUser(AuthenticatedUser admin, Long id, UpdateUserRequest req) {
@@ -85,6 +156,8 @@ public class AdminUserService {
         logAction(admin, user, "USER_UPDATED");
         return mapper.toUserResponse(user);
     }
+
+    // ─── Update status ────────────────────────────────────────────────────────
 
     @Transactional
     public AdminUserResponse updateStatus(AuthenticatedUser admin, Long id, UpdateUserStatusRequest req) {
@@ -107,6 +180,8 @@ public class AdminUserService {
         logAction(admin, user, "USER_STATUS_" + newStatus.name());
         return mapper.toUserResponse(user);
     }
+
+    // ─── Update role ──────────────────────────────────────────────────────────
 
     @Transactional
     public AdminUserResponse updateRole(AuthenticatedUser admin, Long id, UpdateUserRoleRequest req) {
@@ -134,6 +209,8 @@ public class AdminUserService {
         return mapper.toUserResponse(user);
     }
 
+    // ─── Reset password ───────────────────────────────────────────────────────
+
     @Transactional
     public Map<String, Object> resetPassword(AuthenticatedUser admin, Long id) {
         User user = findScopedUser(admin, id);
@@ -145,6 +222,22 @@ public class AdminUserService {
             "message", "Temporary password generated. Share securely with the user.",
             "temporaryPassword", tempPassword
         );
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Builds the standard default password for admin-created accounts.
+     * Formula: LastName@CurrentYear1234
+     * e.g. lastName="bangad" → "Bangad@20261234"
+     */
+    private String buildDefaultPassword(String lastName) {
+        // Capitalise first letter for a consistent format
+        String capitalized = lastName.isEmpty()
+            ? "User"
+            : Character.toUpperCase(lastName.charAt(0)) + lastName.substring(1).toLowerCase();
+        int currentYear = Year.now().getValue();
+        return capitalized + "@" + currentYear + "1234";
     }
 
     private User findScopedUser(AuthenticatedUser admin, Long id) {

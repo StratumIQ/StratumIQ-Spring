@@ -45,6 +45,20 @@ public class AdminUserController {
         return ResponseEntity.ok(userService.getUser(admin, id));
     }
 
+    /**
+     * Admin manually creates a new user.
+     * Email is used as the username. Password is auto-generated as: LastName@CurrentYear1234
+     * The response includes the generated plain-text password — share securely with the user.
+     */
+    @PostMapping
+    @PreAuthorize("hasAuthority('PERM_admin:users:edit')")
+    @Operation(summary = "Manually create a user with auto-generated default password")
+    public ResponseEntity<?> createUser(
+            @AuthenticationPrincipal AuthenticatedUser admin,
+            @Valid @RequestBody CreateUserRequest req) {
+        return ResponseEntity.status(201).body(userService.createUser(admin, req));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PERM_admin:users:edit')")
     @Operation(summary = "Update user profile")

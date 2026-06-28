@@ -12,6 +12,15 @@ app:
 
 jwt:
   access:
-    expiration: ${JWT_ACCESS_EXPIRATION:900000}
+    secret: ${JWT_ACCESS_SECRET}
+    expiration: ${JWT_ACCESS_EXPIRATION:1800000}  # 30 minutes
   refresh:
-    expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+    secret: ${JWT_REFRESH_SECRET}
+    expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
+
+session:
+  idle-timeout: ${SESSION_IDLE_TIMEOUT:1500000}  # 25 minutes
+  warning-time: ${SESSION_WARNING_TIME:300000}  # 5 minutes
+  remember-me-duration: ${REMEMBER_ME_DURATION:2592000000}  # 30 days
+  max-invalid-attempts: ${SESSION_MAX_INVALID_ATTEMPTS:5}
+  token-rotation-enabled: ${TOKEN_ROTATION_ENABLED:true}

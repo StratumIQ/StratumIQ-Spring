@@ -23,7 +23,7 @@ public class JwtUtil {
     private String refreshSecret;
 
     @Value("${jwt.access.expiration}")
-    private long accessExpiry;   // 900000ms = 15 min
+    private long accessExpiry;   // 1800000ms = 30 min
 
     @Value("${jwt.refresh.expiration}")
     private long refreshExpiry;  // 604800000ms = 7 days
@@ -51,6 +51,18 @@ public class JwtUtil {
             .subject(userId.toString())
             .issuedAt(new Date())
             .expiration(new Date(System.currentTimeMillis() + refreshExpiry))
+            .signWith(getRefreshKey())
+            .compact();
+    }
+
+    /**
+     * Generate refresh token with custom expiry (for Remember Me support)
+     */
+    public String generateRefreshToken(Long userId, long customExpiryMs) {
+        return Jwts.builder()
+            .subject(userId.toString())
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + customExpiryMs))
             .signWith(getRefreshKey())
             .compact();
     }

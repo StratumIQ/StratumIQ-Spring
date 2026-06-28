@@ -10,6 +10,15 @@ app:
 
 jwt:
   access:
-    expiration: ${JWT_ACCESS_EXPIRATION:900000}
+    secret: ${JWT_ACCESS_SECRET:your-super-secret-access-key-with-minimum-32-characters-required}
+    expiration: ${JWT_ACCESS_EXPIRATION:1800000}  # 30 minutes
   refresh:
-    expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+    secret: ${JWT_REFRESH_SECRET:your-super-secret-refresh-key-with-minimum-32-characters-required}
+    expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
+
+session:
+  idle-timeout: ${SESSION_IDLE_TIMEOUT:1500000}  # 25 minutes — warn before refresh token expires
+  warning-time: ${SESSION_WARNING_TIME:300000}  # 5 minutes — show warning dialog
+  remember-me-duration: ${REMEMBER_ME_DURATION:2592000000}  # 30 days
+  max-invalid-attempts: ${SESSION_MAX_INVALID_ATTEMPTS:5}  # Max refresh attempts before logout
+  token-rotation-enabled: ${TOKEN_ROTATION_ENABLED:true}  # Always rotate refresh tokens

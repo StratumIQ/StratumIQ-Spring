@@ -5,7 +5,14 @@ import Image from "next/image";
 import Container from "@/components/ui/Container";
 import { EQUIPMENT_CATEGORIES, BRAND } from "@/lib/constants";
 
+// Attachments removed per business review. Consumables removed — future quarry solutions placeholder.
+const EXCLUDED_CATEGORIES = ["Attachments", "Consumables"];
+
 export default function EquipmentCategories() {
+  const visibleCategories = EQUIPMENT_CATEGORIES.filter(
+    (item) => !EXCLUDED_CATEGORIES.includes(item.title)
+  );
+
   return (
     <section id="equipment" className="py-20 md:py-28 bg-black text-white">
       <Container>
@@ -35,7 +42,7 @@ export default function EquipmentCategories() {
         </motion.div>
 
         <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {EQUIPMENT_CATEGORIES.map((item, i) => (
+          {visibleCategories.map((item, i) => (
             <motion.div key={item.title}
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
