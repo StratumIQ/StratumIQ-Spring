@@ -51,27 +51,17 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}>
-      <div style={{
-        background: "var(--a-surface, #1E2433)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 16, padding: 28,
-        width: "100%", maxWidth: 460,
-        boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-      }}>
+    <div className="admin-modal-backdrop">
+      <div className="admin-modal-card">
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
+        <div className="admin-modal-header">
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Add User</h3>
-            <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4, lineHeight: 1.5 }}>
-              Default password: <code style={{ color: "#e2e8f0" }}>LastName@{new Date().getFullYear()}1234</code>
+            <h3 className="admin-modal-title">Add User</h3>
+            <p className="admin-modal-subtitle">
+              Default password: <code style={{ color: "var(--a-t1)" }}>LastName@{new Date().getFullYear()}1234</code>
             </p>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 2, lineHeight: 1 }}>
+          <button className="admin-modal-close" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
@@ -79,19 +69,12 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
         {/* ── Success: show generated password ── */}
         {createdPassword ? (
           <div>
-            <div style={{
-              padding: 16, borderRadius: 10, marginBottom: 20,
-              background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.25)",
-            }}>
-              <p style={{ fontSize: 12, color: "#16a34a", fontWeight: 600, marginBottom: 10 }}>
+            <div className="admin-success-banner">
+              <p className="admin-success-title">
                 User created — share this password securely with the user
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <code style={{
-                  flex: 1, fontSize: 15, fontWeight: 700, letterSpacing: "0.04em",
-                  color: "#f1f5f9", background: "rgba(255,255,255,0.06)",
-                  padding: "9px 12px", borderRadius: 8,
-                }}>
+                <code className="admin-password-pill">
                   {createdPassword}
                 </code>
                 <button onClick={handleCopy} style={{
@@ -114,10 +97,10 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           /* ── Form ── */
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
+          <div className="admin-page-shell">
+            <div className="admin-form-grid">
+              <div className="admin-form-field">
+                <label className="admin-form-label">
                   First Name
                 </label>
                 <input
@@ -129,8 +112,8 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
                 />
                 {errors.firstName && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 3 }}>{errors.firstName}</p>}
               </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
+              <div className="admin-form-field">
+                <label className="admin-form-label">
                   Last Name
                 </label>
                 <input
@@ -144,8 +127,8 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
+            <div className="admin-form-field">
+              <label className="admin-form-label">
                 Email <span style={{ color: "#475569", fontWeight: 400, textTransform: "none" }}>(used as username)</span>
               </label>
               <input
@@ -159,8 +142,8 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
               {errors.email && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 3 }}>{errors.email}</p>}
             </div>
 
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
+            <div className="admin-form-field">
+              <label className="admin-form-label">
                 Phone <span style={{ color: "#475569", fontWeight: 400, textTransform: "none" }}>(optional)</span>
               </label>
               <input
@@ -172,7 +155,7 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
               />
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <div className="admin-form-actions">
               <button className="admin-btn admin-btn-ghost" style={{ flex: 1 }} onClick={onClose} disabled={mutation.isPending}>
                 Cancel
               </button>
@@ -211,10 +194,10 @@ export default function AdminUsersPage() {
       {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} />}
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
+      <div className="admin-panel-header" style={{ marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>User Management</h2>
-          <p style={{ color: "#94a3b8", fontSize: 14, marginTop: 4 }}>Search, filter, and manage platform users</p>
+          <h2 className="admin-page-title">User Management</h2>
+          <p className="admin-page-sub">Search, filter, and manage platform users</p>
         </div>
         <button
           className="admin-btn admin-btn-primary"
@@ -227,8 +210,8 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="admin-glass" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+      <div className="admin-glass admin-toolbar" style={{ marginBottom: 16 }}>
+        <div className="admin-toolbar-field" style={{ position: "relative" }}>
           <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#64748b" }} />
           <input
             className="admin-input"
@@ -238,13 +221,13 @@ export default function AdminUsersPage() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <select className="admin-input" style={{ width: 140 }} value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }}>
+        <select className="admin-input admin-toolbar-field--compact" value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }}>
           <option value="all">All roles</option>
           <option value="USER">User</option>
           <option value="DEALER">Dealer</option>
           <option value="ADMIN">Admin</option>
         </select>
-        <select className="admin-input" style={{ width: 140 }} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+        <select className="admin-input admin-toolbar-field--compact" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
           <option value="all">All status</option>
           <option value="ACTIVE">Active</option>
           <option value="BANNED">Banned</option>

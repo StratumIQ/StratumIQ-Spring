@@ -18,17 +18,19 @@ export default function AdminFleetDetailPage() {
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>{eq.name}</h2>
-      <p style={{ color: "#94a3b8", marginBottom: 24 }}>Read-only equipment detail</p>
-      <div className="admin-glass" style={{ padding: 24, maxWidth: 640 }}>
-        <div style={{ display: "grid", gap: 12, fontSize: 14 }}>
-          <div><span style={{ color: "#64748b" }}>Owner</span><div>{eq.ownerName} ({eq.ownerEmail})</div></div>
-          <div><span style={{ color: "#64748b" }}>Status</span><div>{eq.status}</div></div>
-          <div><span style={{ color: "#64748b" }}>Brand / Model</span><div>{eq.brand} {eq.model}</div></div>
-          <div><span style={{ color: "#64748b" }}>Serial</span><div>{eq.serialNumber || "—"}</div></div>
-          <div><span style={{ color: "#64748b" }}>Running hours</span><div>{eq.runningHours}</div></div>
-          <div><span style={{ color: "#64748b" }}>Location</span><div>{eq.location || "—"}</div></div>
+    <div className="admin-page-shell">
+      <div className="admin-page-header">
+        <h2 className="admin-page-title">{eq.name}</h2>
+        <p className="admin-page-sub">Read-only equipment detail</p>
+      </div>
+      <div className="admin-glass admin-panel">
+        <div className="admin-detail-grid">
+          <div className="admin-detail-item"><span className="admin-detail-label">Owner</span><div className="admin-detail-value">{eq.ownerName} ({eq.ownerEmail})</div></div>
+          <div className="admin-detail-item"><span className="admin-detail-label">Status</span><div className="admin-detail-value">{eq.status}</div></div>
+          <div className="admin-detail-item"><span className="admin-detail-label">Brand / Model</span><div className="admin-detail-value">{eq.brand} {eq.model}</div></div>
+          <div className="admin-detail-item"><span className="admin-detail-label">Serial</span><div className="admin-detail-value">{eq.serialNumber || "—"}</div></div>
+          <div className="admin-detail-item"><span className="admin-detail-label">Running hours</span><div className="admin-detail-value">{eq.runningHours}</div></div>
+          <div className="admin-detail-item"><span className="admin-detail-label">Location</span><div className="admin-detail-value">{eq.location || "—"}</div></div>
         </div>
       </div>
     </div>

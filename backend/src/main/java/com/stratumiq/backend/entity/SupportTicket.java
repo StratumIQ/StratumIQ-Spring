@@ -1,5 +1,6 @@
 package com.stratumiq.backend.entity;
 
+import com.stratumiq.backend.common.enums.SupportType;
 import com.stratumiq.backend.common.enums.TicketPriority;
 import com.stratumiq.backend.common.enums.TicketStatus;
 import jakarta.persistence.*;
@@ -67,4 +68,9 @@ public class SupportTicket {
     public void onUpdate() {
         this.updatedAt = Instant.now();
     }
+
+    @Enumerated(EnumType.STRING)
+@Column(nullable = false, length = 20)
+@Builder.Default
+private SupportType type = SupportType.TICKET;
 }

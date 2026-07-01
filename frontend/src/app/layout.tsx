@@ -6,23 +6,15 @@
  */
 
 import type { Metadata } from "next";
-import { DM_Sans, Syne } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import ConditionalShell from "@/components/layout/Conditionalshell";
 
 /* ── Font definitions ─────────────────────────────────────── */
-const dmSans = DM_Sans({
-  subsets:  ["latin"],
-  weight:   ["300", "400", "500", "600", "700", "800"],
+const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-body",
-  display:  "swap",
-});
-
-const syne = Syne({
-  subsets:  ["latin"],
-  weight:   ["600", "700", "800"],
-  variable: "--font-heading",
-  display:  "swap",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -32,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${syne.variable}`}>
+    <html lang="en" className={inter.variable}>
       <body>
         <ConditionalShell>{children}</ConditionalShell>
       </body>

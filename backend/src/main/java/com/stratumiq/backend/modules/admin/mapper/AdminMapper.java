@@ -86,6 +86,7 @@ public class AdminMapper {
             ticket.getDescription(),
             ticket.getStatus().name(),
             ticket.getPriority().name(),
+            ticket.getType() != null ? ticket.getType().name() : null,
             ticket.getAssignedTo(),
             assignee != null
                 ? (assignee.getFirstName() + " " + assignee.getLastName()).trim()

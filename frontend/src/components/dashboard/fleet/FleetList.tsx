@@ -11,7 +11,11 @@ import {
   Clock,
   MapPin,
   Calendar,
+  Wrench,
+  AlertTriangle,
+  Activity,
 } from "lucide-react";
+import KpiCard from "../common/KpiCard";
 import PageShell from "../layout/PageShell";
 import FilterBar from "../common/FilterBar";
 import ViewToggle, { type ViewMode } from "../ui/ViewToggle";
@@ -128,6 +132,12 @@ export default function FleetList() {
         </Button>
       }
     >
+      <div className="d-kpi-grid" style={{ marginBottom: 8 }}>
+        <KpiCard label="Assets" value={summary?.total ?? equipment.length ?? "—"} icon={<Truck size={18} />} color="#E8692C" loading={sumLoading} />
+        <KpiCard label="Active" value={summary?.active ?? "—"} icon={<Activity size={18} />} color="#2563EB" loading={sumLoading} />
+        <KpiCard label="Maintenance" value={summary?.maintenance ?? "—"} icon={<Wrench size={18} />} color="#7C3AED" loading={sumLoading} />
+        <KpiCard label="Alerts" value={summary?.service_overdue_count ?? 0} icon={<AlertTriangle size={18} />} color="#DC2626" loading={sumLoading} />
+      </div>
       <div className="d-fleet-layout">
         <div className="d-fleet-main">
           <FilterBar

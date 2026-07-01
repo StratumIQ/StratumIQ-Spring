@@ -20,7 +20,7 @@ export default function EmptyState({ icon: Icon, title, description, action }: P
   return (
     <GlassCard className="d-empty-state" padding="lg">
       <div className="d-empty-state-icon" aria-hidden>
-        <Icon size={28} strokeWidth={1.5} />
+        <Icon size={26} strokeWidth={1.5} />
       </div>
       <h3 className="d-empty-state-title">{title}</h3>
       {description && <p className="d-empty-state-desc">{description}</p>}

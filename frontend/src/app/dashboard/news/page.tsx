@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pin, Newspaper } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pin, Newspaper, Eye, FileText } from "lucide-react";
 import PageShell from "@/components/dashboard/layout/PageShell";
+import KpiCard from "@/components/dashboard/common/KpiCard";
 import Skeleton from "@/components/dashboard/ui/Skeleton";
 import { getAllDashboardMarketing } from "@/lib/api/dashboardMarketing";
 import { resolveAssetUrl } from "@/lib/constants";
@@ -33,6 +34,13 @@ export default function NewsPage() {
       }}>
         <ArrowLeft size={14} /> Back to Dashboard
       </Link>
+
+      <div className="d-kpi-grid" style={{ marginBottom: 8 }}>
+        <KpiCard label="Total" value={pagination?.total ?? items.length ?? 0} icon={<Newspaper size={18} />} color="#E8692C" loading={isLoading} />
+        <KpiCard label="Pinned" value={items.filter((i) => i.isPinned).length} icon={<Pin size={18} />} color="#2563EB" loading={isLoading} />
+        <KpiCard label="Published" value={(items.filter((i) => i.status === "PUBLISHED").length) ?? items.length} icon={<FileText size={18} />} color="#7C3AED" loading={isLoading} />
+        <KpiCard label="Shown" value={0} icon={<Eye size={18} />} color="#E8692C" loading={isLoading} />
+      </div>
 
       {isLoading ? (
         <div style={{ display: "grid", gap: 16 }}>

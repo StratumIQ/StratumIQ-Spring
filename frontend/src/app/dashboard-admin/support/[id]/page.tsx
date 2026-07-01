@@ -1,11 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, Clock3, MessageSquareText, ShieldCheck, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/services/admin/adminClient";
 import type { AdminTicket } from "@/types/admin";
+
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  OPEN: { label: "Open", className: "admin-badge-open" },
+  ASSIGNED: { label: "Assigned", className: "admin-badge-open" },
+  IN_PROGRESS: { label: "In progress", className: "admin-badge-active" },
+  WAITING_CUSTOMER: { label: "Waiting customer", className: "admin-badge-banned" },
+  RESOLVED: { label: "Resolved", className: "admin-badge-resolved" },
+};
+
+const PRIORITY_META: Record<string, { label: string; className: string }> = {
+  LOW: { label: "Low", className: "admin-badge-resolved" },
+  MEDIUM: { label: "Medium", className: "admin-badge-pending" },
+  HIGH: { label: "High", className: "admin-badge-banned" },
+};
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export default function AdminSupportDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +48,17 @@ export default function AdminSupportDetailPage() {
     onSuccess: () => {
       toast.success("Status updated");
       qc.invalidateQueries({ queryKey: ["admin", "ticket", ticketId] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: () => adminApi.assignTicket(ticketId, ticketId),
+    onSuccess: () => {
+      toast.success("Ticket assigned");
+      qc.invalidateQueries({ queryKey: ["admin", "ticket", ticketId] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -33,46 +69,75 @@ export default function AdminSupportDetailPage() {
       toast.success("Note added");
       setNote("");
       qc.invalidateQueries({ queryKey: ["admin", "ticket", ticketId] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   if (isLoading || !ticket) {
-    return <div className="admin-glass" style={{ padding: 24 }}><div className="admin-skeleton" style={{ height: 200 }} /></div>;
+    return <div className="admin-glass" style={{ padding: 24 }}><div className="admin-skeleton" style={{ height: 240 }} /></div>;
   }
+
+  const statusMeta = STATUS_META[ticket.status] ?? STATUS_META.OPEN;
+  const priorityMeta = PRIORITY_META[ticket.priority] ?? PRIORITY_META.MEDIUM;
+  const notes = ticket.notes ?? [];
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <span style={{ fontFamily: "monospace", color: "#E8692C", fontSize: 13 }}>{ticket.ticketNumber}</span>
-        <h2 style={{ fontSize: 22, fontWeight: 700, margin: "8px 0 4px" }}>{ticket.subject}</h2>
-        <p style={{ color: "#94a3b8" }}>{ticket.customerName} · {ticket.customerEmail}</p>
+      <div style={{ marginBottom: 16 }}>
+        <Link href="/dashboard-admin/support" className="admin-btn admin-btn-ghost" style={{ textDecoration: "none", marginBottom: 12 }}>
+          <ArrowLeft size={14} /> Back to queue
+        </Link>
+        <div className="admin-glass" style={{ padding: 20 }}>
+          <div className="admin-support-card-top" style={{ alignItems: "flex-start" }}>
+            <div>
+              <div className="admin-support-ticket-number">{ticket.ticketNumber}</div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: "6px 0 4px" }}>{ticket.subject}</h2>
+              <p style={{ margin: 0, color: "var(--a-t3)" }}>
+                {ticket.customerName || ticket.customerEmail || "Unknown customer"}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <span className={`admin-badge ${statusMeta.className}`}>{statusMeta.label}</span>
+              <span className={`admin-badge ${priorityMeta.className}`}>{priorityMeta.label}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
-        <div>
-          <div className="admin-glass" style={{ padding: 20, marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Description</h3>
-            <p style={{ color: "#cbd5e1", fontSize: 14, lineHeight: 1.6 }}>{ticket.description || "No description provided."}</p>
+      <div className="admin-support-grid">
+        <div style={{ display: "grid", gap: 16 }}>
+          <div className="admin-glass" style={{ padding: 20 }}>
+            <div className="admin-support-section-title">
+              <MessageSquareText size={14} /> Conversation
+            </div>
+            <p style={{ margin: 0, color: "var(--a-t2)", lineHeight: 1.7 }}>{ticket.description || "No description provided."}</p>
           </div>
 
           <div className="admin-glass" style={{ padding: 20 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Internal Notes</h3>
-            {(ticket.notes ?? []).length === 0 ? (
-              <div className="admin-empty" style={{ padding: 16 }}>No notes yet</div>
+            <div className="admin-support-section-title">
+              <ShieldCheck size={14} /> Replies
+            </div>
+            {notes.length === 0 ? (
+              <div className="admin-empty" style={{ padding: 16 }}>No replies recorded yet.</div>
             ) : (
-              ticket.notes.map((n) => (
-                <div key={n.id} style={{ padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>{n.authorName} · {new Date(n.createdAt).toLocaleString()}</div>
-                  <div style={{ fontSize: 13, marginTop: 6 }}>{n.body}</div>
-                </div>
-              ))
+              <div className="admin-support-thread">
+                {notes.map((noteItem) => (
+                  <div key={noteItem.id} className="admin-support-thread-item">
+                    <div className="admin-support-thread-meta">
+                      <strong>{noteItem.authorName}</strong>
+                      <span>{formatDate(noteItem.createdAt)}</span>
+                    </div>
+                    <div>{noteItem.body}</div>
+                  </div>
+                ))}
+              </div>
             )}
             <div style={{ marginTop: 16 }}>
               <textarea
                 className="admin-input"
                 rows={3}
-                placeholder="Add internal note…"
+                placeholder="Add an internal note or next step…"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
@@ -82,33 +147,78 @@ export default function AdminSupportDetailPage() {
                 disabled={!note.trim() || noteMutation.isPending}
                 onClick={() => noteMutation.mutate()}
               >
-                Add Note
+                Add note
               </button>
             </div>
           </div>
+
+          <div className="admin-glass" style={{ padding: 20 }}>
+            <div className="admin-support-section-title">
+              <Clock3 size={14} /> Attachments
+            </div>
+            <div className="admin-empty" style={{ padding: 16 }}>Attachments will appear here when the upload flow is enabled.</div>
+          </div>
         </div>
 
-        <div className="admin-glass" style={{ padding: 20, height: "fit-content" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Actions</h3>
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: "#64748b" }}>Current status</span>
-            <div style={{ marginTop: 4 }}>{ticket.status}</div>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div className="admin-glass" style={{ padding: 20 }}>
+            <div className="admin-support-section-title">
+              <UserCheck size={14} /> Ticket info
+            </div>
+            <div className="admin-support-side-card">
+              <div>
+                <div className="admin-support-label">Status</div>
+                <select className="admin-input" value={ticket.status} onChange={(e) => statusMutation.mutate(e.target.value)}>
+                  <option value="OPEN">Open</option>
+                  <option value="ASSIGNED">Assigned</option>
+                  <option value="IN_PROGRESS">In progress</option>
+                  <option value="WAITING_CUSTOMER">Waiting customer</option>
+                  <option value="RESOLVED">Resolved</option>
+                </select>
+              </div>
+              <div>
+                <div className="admin-support-label">Priority</div>
+                <div>{priorityMeta.label}</div>
+              </div>
+              <div>
+                <div className="admin-support-label">Customer</div>
+                <div>{ticket.customerName || ticket.customerEmail || "Unknown customer"}</div>
+              </div>
+              <div>
+                <div className="admin-support-label">Assigned</div>
+                <div>{ticket.assigneeName || "Unassigned"}</div>
+              </div>
+              <div>
+                <div className="admin-support-label">Created</div>
+                <div>{formatDate(ticket.createdAt)}</div>
+              </div>
+              <div>
+                <div className="admin-support-label">Updated</div>
+                <div>{formatDate(ticket.updatedAt)}</div>
+              </div>
+            </div>
+            <div className="admin-support-row-actions" style={{ marginTop: 12 }}>
+              <button className="admin-btn admin-btn-ghost" onClick={() => assignMutation.mutate()} disabled={assignMutation.isPending}>Assign</button>
+              <button className="admin-btn admin-btn-primary" onClick={() => statusMutation.mutate("RESOLVED")} disabled={statusMutation.isPending}>Resolve</button>
+              <button className="admin-btn admin-btn-ghost" onClick={() => statusMutation.mutate("RESOLVED")} disabled={statusMutation.isPending}>Close</button>
+            </div>
           </div>
-          <select
-            className="admin-input"
-            style={{ marginBottom: 12 }}
-            value={ticket.status}
-            onChange={(e) => statusMutation.mutate(e.target.value)}
-          >
-            <option value="OPEN">OPEN</option>
-            <option value="ASSIGNED">ASSIGNED</option>
-            <option value="IN_PROGRESS">IN_PROGRESS</option>
-            <option value="WAITING_CUSTOMER">WAITING_CUSTOMER</option>
-            <option value="RESOLVED">RESOLVED</option>
-          </select>
-          {ticket.assigneeName && (
-            <div style={{ fontSize: 13, color: "#94a3b8" }}>Assigned to: {ticket.assigneeName}</div>
-          )}
+
+          <div className="admin-glass" style={{ padding: 20 }}>
+            <div className="admin-support-section-title">
+              <CheckCircle2 size={14} /> Activity
+            </div>
+            <div className="admin-support-side-card">
+              <div>
+                <div className="admin-support-label">Workflow</div>
+                <div>{ticket.status}</div>
+              </div>
+              <div>
+                <div className="admin-support-label">Latest update</div>
+                <div>{notes[0]?.body || "No thread updates yet"}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

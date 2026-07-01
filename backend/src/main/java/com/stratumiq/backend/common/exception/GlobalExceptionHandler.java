@@ -1,5 +1,6 @@
 package com.stratumiq.backend.common.exception;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -80,6 +81,16 @@ public class GlobalExceptionHandler {
             "code", "VALIDATION_ERROR",
             "fields", fields
         ));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<?> handleEntityNotFound(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(Map.of(
+                "error", "Resource not found",
+                "code", "NOT_FOUND",
+                "message", ex.getMessage() != null ? ex.getMessage() : "The requested resource was not found"
+            ));
     }
 
     // Handles all ResponseStatusException throws from services

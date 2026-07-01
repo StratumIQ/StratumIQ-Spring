@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Headset,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Equipment", href: "/dashboard/equipment", icon: <Cpu size={16} /> },
   { label: "Maintenance", href: "/dashboard/maintenance", icon: <Wrench size={16} /> },
   { label: "Alerts", href: "/dashboard/alerts", icon: <Bell size={16} /> },
+  { label: "Support", href: "/dashboard/support", icon: <Headset size={16} /> },
   { label: "Parts", href: "/dashboard/parts", icon: <Package size={16} /> },
   { label: "Configurator", href: "/dashboard/configurator", icon: <SlidersHorizontal size={16} /> },
   { label: "Solutions", href: "/dashboard/solutions", icon: <BarChart3 size={16} /> },

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Cpu } from "lucide-react";
 import PageShell from "../layout/PageShell";
+import KpiCard from "../common/KpiCard";
+import { Truck, Wrench, AlertTriangle, Activity } from "lucide-react";
 import FilterBar from "../common/FilterBar";
 import ViewToggle, { type ViewMode } from "../ui/ViewToggle";
 import Button from "../ui/Button";
@@ -47,7 +49,6 @@ export default function EquipmentListPage() {
   return (
     <PageShell
       title="Equipment Registry"
-      description={`${total.toLocaleString()} machines across crushers, screens, feeders & conveyors`}
       breadcrumbs={[{ label: "Equipment" }]}
       actions={
         <Button icon={<Plus size={15} />} onClick={() => router.push("/dashboard/equipment/new")}>
@@ -55,6 +56,12 @@ export default function EquipmentListPage() {
         </Button>
       }
     >
+      <div className="d-kpi-grid" style={{ marginBottom: 8 }}>
+        <KpiCard label="Total" value={total ?? 0} icon={<Truck size={18} />} color="#E8692C" />
+        <KpiCard label="Active" value={items.filter((i) => (i.status || "").toLowerCase() === "active").length} icon={<Activity size={18} />} color="#2563EB" />
+        <KpiCard label="Maintenance" value={items.filter((i) => (i.application_stage || "").toLowerCase().includes("maint")).length} icon={<Wrench size={18} />} color="#F59E0B" />
+        <KpiCard label="Alerts" value={0} icon={<AlertTriangle size={18} />} color="#DC2626" />
+      </div>
       <FilterBar
         search={search}
         onSearchChange={setSearch}
