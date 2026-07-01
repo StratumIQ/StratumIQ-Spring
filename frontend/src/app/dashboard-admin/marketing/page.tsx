@@ -134,6 +134,8 @@ export default function AdminMarketingPage() {
     ctr: `${(kpiData?.ctr ?? 0).toFixed(1)}%`,
   }), [kpiData]);
 
+  const hasAnalytics = Boolean(kpiData && ((kpiData.totalViews ?? 0) > 0 || (kpiData.totalClicks ?? 0) > 0));
+
   const items = data?.marketing ?? [];
   const pagination = data?.pagination;
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "marketing"] });
@@ -283,23 +285,8 @@ export default function AdminMarketingPage() {
       )}
 
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", background: "linear-gradient(135deg, #fffaf6 0%, #ffffff 100%)", border: "1px solid rgba(232,105,44,0.14)", borderRadius: 20, padding: "24px 24px", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
-        <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(232,105,44,0.10)", color: "#E8692C", borderRadius: 999, padding: "6px 10px", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-            <FileText size={14} /> Marketing Center
-          </div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", color: "#111827" }}>
-            Marketing Center
-          </h2>
-          <p style={{ color: "#64748b", fontSize: 14, marginTop: 8, maxWidth: 620, lineHeight: 1.6 }}>
-            Manage announcements, campaigns, dashboard banners, and user communications from a single premium workspace.
-            {pagination && (
-              <span style={{ marginLeft: 8, color: "#334155", fontWeight: 700 }}>
-                · {pagination.total} total items
-              </span>
-            )}
-          </p>
-        </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#111827" }}>Marketing</h2>
         <button
           className="admin-btn admin-btn-primary"
           style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}
@@ -311,16 +298,20 @@ export default function AdminMarketingPage() {
 
       {/* KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-        <KPICard icon={FileText} label="Total News" value={kpis.total} loading={kpiLoading || isLoading} subtitle="All active records" />
-        <KPICard icon={CheckCircle2} label="Published" value={kpis.published} loading={kpiLoading || isLoading} subtitle="Live on dashboard" />
-        <KPICard icon={AlertCircle} label="Drafts" value={kpis.draft} loading={kpiLoading || isLoading} subtitle="Not yet live" />
-        <KPICard icon={Archive} label="Archived" value={kpis.archived} loading={kpiLoading || isLoading} subtitle="Hidden from view" />
-        <KPICard icon={Pin} label="Pinned" value={kpis.pinned} loading={kpiLoading || isLoading} subtitle="Priority placements" />
-        <KPICard icon={Zap} label="Scheduled" value={kpis.scheduled} loading={kpiLoading || isLoading} subtitle="Set to go live" />
-        <KPICard icon={AlertCircle} label="Expired" value={kpis.expired} loading={kpiLoading || isLoading} subtitle="Past end date" />
-        <KPICard icon={EyeIcon} label="Total Views" value={kpis.views} loading={kpiLoading || isLoading} subtitle="Engagement reach" />
-        <KPICard icon={TrendingUp} label="Total Clicks" value={kpis.clicks} loading={kpiLoading || isLoading} subtitle="CTA interactions" />
-        <KPICard icon={TrendingUp} label="CTR" value={kpis.ctr} loading={kpiLoading || isLoading} subtitle="Click-through rate" />
+        <KPICard icon={FileText} label="Total News" value={kpis.total} loading={kpiLoading || isLoading} />
+        <KPICard icon={CheckCircle2} label="Published" value={kpis.published} loading={kpiLoading || isLoading} />
+        <KPICard icon={AlertCircle} label="Drafts" value={kpis.draft} loading={kpiLoading || isLoading} />
+        <KPICard icon={Archive} label="Archived" value={kpis.archived} loading={kpiLoading || isLoading} />
+        <KPICard icon={Pin} label="Pinned" value={kpis.pinned} loading={kpiLoading || isLoading} />
+        <KPICard icon={Zap} label="Scheduled" value={kpis.scheduled} loading={kpiLoading || isLoading} />
+        <KPICard icon={AlertCircle} label="Expired" value={kpis.expired} loading={kpiLoading || isLoading} />
+        {hasAnalytics && (
+          <>
+            <KPICard icon={EyeIcon} label="Views" value={kpis.views} loading={kpiLoading || isLoading} />
+            <KPICard icon={TrendingUp} label="Clicks" value={kpis.clicks} loading={kpiLoading || isLoading} />
+            <KPICard icon={TrendingUp} label="CTR" value={kpis.ctr} loading={kpiLoading || isLoading} />
+          </>
+        )}
       </div>
 
       {/* Error State */}

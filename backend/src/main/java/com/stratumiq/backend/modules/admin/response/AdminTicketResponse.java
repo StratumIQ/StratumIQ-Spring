@@ -13,6 +13,7 @@ public record AdminTicketResponse(
     String description,
     String status,
     String priority,
+    String type,
     Long assignedTo,
     String assigneeName,
     Instant resolvedAt,

@@ -172,8 +172,8 @@ export default function AdminActivityPage() {
         )}
       </div>
 
-      <div className="admin-glass" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 260px", position: "relative" }}>
+      <div className="admin-glass admin-toolbar" style={{ marginBottom: 16 }}>
+        <div className="admin-toolbar-field" style={{ position: "relative" }}>
           <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#64748b" }} />
           <input
             className="admin-input"

@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface SupportTicketRepository
         extends JpaRepository<SupportTicket, Long>,
@@ -23,4 +26,14 @@ public interface SupportTicketRepository
 
     @Query("SELECT MAX(t.ticketNumber) FROM SupportTicket t WHERE t.ticketNumber LIKE :prefix%")
     String findMaxTicketNumberWithPrefix(String prefix);
+
+    List<SupportTicket> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+        Long userId
+);
+
+java.util.Optional<SupportTicket> findByIdAndUserIdAndDeletedAtIsNull(
+        Long id,
+        Long userId
+);
+
 }

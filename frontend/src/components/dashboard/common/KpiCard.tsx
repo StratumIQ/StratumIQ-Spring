@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import { cn } from "@/lib/utils";
 
@@ -45,11 +45,12 @@ export default function KpiCard({
         <div className="d-kpi-icon" style={{ color, background: `${color}14`, borderColor: `${color}28` }}>
           {icon}
         </div>
-        {href && (
-          <span className="d-kpi-arrow" aria-hidden>
-            <ArrowUpRight size={14} />
+        {trendValue ? (
+          <span className={cn("d-kpi-trend", `d-kpi-trend--${trend}`)}>
+            <TrendIcon size={11} />
+            {trendValue}
           </span>
-        )}
+        ) : null}
       </div>
       {loading ? (
         <div className="d-kpi-skeleton">
@@ -58,19 +59,8 @@ export default function KpiCard({
         </div>
       ) : (
         <>
-          <div className="d-kpi-value">{value}</div>
           <div className="d-kpi-label">{label}</div>
-          {(subText || trendValue) && (
-            <div className="d-kpi-footer">
-              {trendValue && (
-                <span className={cn("d-kpi-trend", `d-kpi-trend--${trend}`)}>
-                  <TrendIcon size={11} />
-                  {trendValue}
-                </span>
-              )}
-              {subText && <span className="d-kpi-sub">{subText}</span>}
-            </div>
-          )}
+          <div className="d-kpi-value">{value}</div>
         </>
       )}
     </GlassCard>

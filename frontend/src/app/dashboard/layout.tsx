@@ -12,6 +12,7 @@ import DashboardToaster from "@/components/dashboard/layout/DashboardToaster";
 import { UserCtx, SidebarCtx } from "@/components/dashboard/layout/DashboardContext";
 import { authApi, refreshSession } from "@/lib/api/auth";
 import DashboardLoader from "@/components/dashboard/layout/DashboardLoader";
+import SupportLauncher from "@/components/dashboard/support/SupportLauncher";
 import { ApiError } from "@/lib/api/client";
 import { removeToken } from "@/lib/utils";
 import { getDashboardPath, isAdminRole } from "@/lib/routing/dashboardRoutes";
@@ -158,6 +159,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </motion.div>
                 </AnimatePresence>
               </main>
+              <SupportLauncher />
             </div>
           </div>
         </SidebarCtx.Provider>

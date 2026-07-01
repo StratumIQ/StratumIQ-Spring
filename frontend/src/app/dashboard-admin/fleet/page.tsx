@@ -23,9 +23,9 @@ export default function AdminFleetPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Fleet Monitoring</h2>
-        <p style={{ color: "#94a3b8", fontSize: 14 }}>Read-only view of all platform equipment</p>
+      <div className="admin-page-header">
+        <h2 className="admin-page-title">Fleet Monitoring</h2>
+        <p className="admin-page-sub">Read-only view of all platform equipment</p>
       </div>
 
       <div className="admin-kpi-grid" style={{ marginBottom: 24 }}>
@@ -45,9 +45,11 @@ export default function AdminFleetPage() {
         ))}
       </div>
 
-      <div className="admin-glass" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 12 }}>
-        <input className="admin-input" placeholder="Search equipment…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
-        <select className="admin-input" style={{ width: 160 }} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+      <div className="admin-glass admin-toolbar" style={{ marginBottom: 16 }}>
+        <div className="admin-toolbar-field">
+          <input className="admin-input" placeholder="Search equipment…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+        </div>
+        <select className="admin-input admin-toolbar-field--compact" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
           <option value="all">All status</option>
           <option value="ACTIVE">Active</option>
           <option value="IDLE">Idle</option>

@@ -168,45 +168,39 @@ export default function DashboardHome() {
 
       <div className="d-kpi-grid">
         <KpiCard
-          label="Total Equipment"
+          label="Equipment"
           value={stats?.totalEquipment ?? "—"}
-          subText={`${stats?.activeEquipment ?? 0} active`}
           href="/dashboard/equipment"
-          icon={<Cpu size={20} />}
+          icon={<Cpu size={18} />}
           color="#2563EB"
           trend="up"
           trendValue="+12%"
           loading={isLoading}
         />
         <KpiCard
-          label="Active Fleet"
+          label="Fleet"
           value={stats?.activeEquipment ?? "—"}
-          subText={`${stats?.idleEquipment ?? 0} idle`}
           href="/dashboard/fleet"
-          icon={<Truck size={20} />}
+          icon={<Truck size={18} />}
           color="#E8692C"
           loading={isLoading}
         />
         <KpiCard
-          label="Maintenance Due"
+          label="Maintenance"
           value={stats?.maintenanceEquipment ?? "—"}
-          subText="Scheduled tasks"
           href="/dashboard/maintenance"
-          icon={<Wrench size={20} />}
+          icon={<Wrench size={18} />}
           color="#7C3AED"
           trend={stats && stats.maintenanceEquipment > 0 ? "down" : "neutral"}
-          trendValue={stats && stats.maintenanceEquipment > 0 ? "Action needed" : "On track"}
+          trendValue={stats && stats.maintenanceEquipment > 0 ? "Action" : "On track"}
           loading={isLoading}
         />
         <KpiCard
-          label="Open Alerts"
+          label="Alerts"
           value={data?.alerts.length ?? "—"}
-          subText={`${data?.alerts.filter((a) => !a.is_read).length ?? 0} unread`}
           href="/dashboard/alerts"
-          icon={<Bell size={20} />}
-          color={
-            data?.alerts.some((a) => !a.is_read && a.type === "critical") ? "#DC2626" : "#E8692C"
-          }
+          icon={<Bell size={18} />}
+          color={data?.alerts.some((a) => !a.is_read && a.type === "critical") ? "#DC2626" : "#E8692C"}
           loading={isLoading}
         />
       </div>

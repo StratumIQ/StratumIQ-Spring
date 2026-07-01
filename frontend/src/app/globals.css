@@ -2,9 +2,7 @@
 
 /* ═══════════════════════════════════════════════════════════════
    STRATUMIQ DESIGN SYSTEM
-   Fonts injected via next/font/google CSS variables:
-     --font-body    → DM Sans
-     --font-heading → Syne
+   Minimal enterprise SaaS foundation
 ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Custom Properties ─────────────────────────────────── */
@@ -18,7 +16,7 @@
   --navy-hover:   #1F2937;
 
   /* Fonts — set by next/font/google on <html> */
-  --font-mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:  "SFMono-Regular", ui-monospace, monospace;
 
   /* Dashboard surface */
   --d-bg:       #F5F0EE;
@@ -53,8 +51,8 @@
 html { scroll-behavior: smooth; font-size: 16px; }
 
 body {
-  background:             #0B0F19;
-  color:                  #FFFFFF;
+  background:             #F7F8FA;
+  color:                  #111827;
   font-family:            var(--font-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering:         optimizeLegibility;
@@ -62,12 +60,13 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family:    var(--font-heading), var(--font-body), sans-serif;
-  letter-spacing: -0.025em;
-  line-height:    1.1;
+  font-family:    var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.02em;
+  line-height:    1.15;
+  color:          #111827;
 }
 
-code, pre { font-family: var(--font-mono); }
+code, pre { font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace; }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
@@ -99,7 +98,7 @@ body:has(.dash-root) {
 .dash-root h4,
 .dash-root h5,
 .dash-root h6 {
-  font-family:    var(--font-heading), var(--font-body), sans-serif;
+  font-family:    var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.03em;
   line-height:    1.06;
 }
