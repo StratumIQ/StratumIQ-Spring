@@ -98,6 +98,19 @@
   font-family: var(--font-heading), sans-serif;
 }
 
+.auth-hero-title{
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  margin: 0 0 10px;
+  font-family: var(--font-heading), sans-serif;
+  color: #000000;
+}
+h2{
+  color: #000000;
+}
+
 .auth-hero h1 span { color: #E8692C; }
 
 .auth-hero p {

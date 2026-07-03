@@ -384,7 +384,7 @@ export default function AuthPage() {
 
           {/* Hero copy */}
           <div className="auth-hero">
-            <h1>Run your quarry<br /><span>smarter, not harder</span></h1>
+            <h1 className="auth-hero-title">Run your quarry<br /><span>smarter, not harder</span></h1>
             <p>Fleet intelligence, predictive maintenance, and AI copilot — unified for heavy equipment operations.</p>
           </div>
 

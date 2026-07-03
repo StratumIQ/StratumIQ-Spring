@@ -12,7 +12,7 @@
   --orange-hover: #D45A1F;
   --orange-dim:   rgba(232, 105, 44, 0.10);
   --orange-glow:  rgba(232, 105, 44, 0.28);
-  --navy:         #111827;
+  --navy:         #ffffff;
   --navy-hover:   #1F2937;
 
   /* Fonts — set by next/font/google on <html> */
@@ -23,7 +23,7 @@
   --d-surface:  #FFFFFF;
   --d-surface2: #EDE7E3;
 
-  --d-text:   #111827;
+  --d-text:   #fff;
   --d-text2:  #374151;
   --d-text3:  #9CA3AF;
 
@@ -59,12 +59,14 @@ body {
   overflow-x:             hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+ h1, h2, h3, h4, h5, h6 {
   font-family:    var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.02em;
   line-height:    1.15;
-  color:          #111827;
+  color:           #ffffff;
 }
+
+
 
 code, pre { font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace; }
 
