@@ -2,7 +2,9 @@
 
 /* ═══════════════════════════════════════════════════════════════
    STRATUMIQ DESIGN SYSTEM
-   Minimal enterprise SaaS foundation
+   Fonts injected via next/font/google CSS variables:
+     --font-body    → DM Sans
+     --font-heading → Syne
 ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Custom Properties ─────────────────────────────────── */
@@ -12,18 +14,18 @@
   --orange-hover: #D45A1F;
   --orange-dim:   rgba(232, 105, 44, 0.10);
   --orange-glow:  rgba(232, 105, 44, 0.28);
-  --navy:         #ffffff;
+  --navy:         #111827;
   --navy-hover:   #1F2937;
 
   /* Fonts — set by next/font/google on <html> */
-  --font-mono:  "SFMono-Regular", ui-monospace, monospace;
+  --font-mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Dashboard surface */
   --d-bg:       #F5F0EE;
   --d-surface:  #FFFFFF;
   --d-surface2: #EDE7E3;
 
-  --d-text:   #fff;
+  --d-text:   #111827;
   --d-text2:  #374151;
   --d-text3:  #9CA3AF;
 
@@ -51,24 +53,21 @@
 html { scroll-behavior: smooth; font-size: 16px; }
 
 body {
-  background:             #F7F8FA;
-  color:                  #111827;
+  background:             #0B0F19;
+  color:                  #FFFFFF;
   font-family:            var(--font-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering:         optimizeLegibility;
   overflow-x:             hidden;
 }
 
- h1, h2, h3, h4, h5, h6 {
-  font-family:    var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.02em;
-  line-height:    1.15;
-  color:           #ffffff;
+h1, h2, h3, h4, h5, h6 {
+  font-family:    var(--font-heading), var(--font-body), sans-serif;
+  letter-spacing: -0.025em;
+  line-height:    1.1;
 }
 
-
-
-code, pre { font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace; }
+code, pre { font-family: var(--font-mono); }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
@@ -100,7 +99,7 @@ body:has(.dash-root) {
 .dash-root h4,
 .dash-root h5,
 .dash-root h6 {
-  font-family:    var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:    var(--font-heading), var(--font-body), sans-serif;
   letter-spacing: -0.03em;
   line-height:    1.06;
 }
