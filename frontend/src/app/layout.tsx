@@ -6,7 +6,7 @@
  */
 
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ConditionalShell from "@/components/layout/Conditionalshell";
 
@@ -17,6 +17,12 @@ const inter = Inter({
   display: "swap",
 });
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title:       "Stratum IQ — Intelligent Platform for Heavy Equipment",
   description: "Manage fleet, parts, maintenance, and services for heavy equipment operations.",
@@ -24,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body>
         <ConditionalShell>{children}</ConditionalShell>
       </body>

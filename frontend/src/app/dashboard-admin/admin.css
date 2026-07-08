@@ -70,6 +70,30 @@
   --admin-sidebar-w-collapsed: 72px;
   --admin-topbar-h:            60px;
 
+  /* Bridge: lets shared components from dashboard.css (GlassCard, KpiCard, Button)
+     render correctly here — their CSS only defines these var names under .dash-root,
+     which the admin panel doesn't use. Values already match --a-* 1:1 (see dashboard.css). */
+  --s0:       var(--a-s0);
+  --s1:       var(--a-s1);
+  --s2:       var(--a-s2);
+  --b1:       var(--a-b1);
+  --t1:       var(--a-t1);
+  --t2:       var(--a-t2);
+  --t3:       var(--a-t3);
+  --t4:       var(--a-t4);
+  --or:       var(--ap);
+  --or-10:    var(--ap-10);
+  --r6:       var(--a-r6);
+  --r7:       var(--a-r7);
+  --rf:       var(--a-rf);
+  --sx:       var(--a-sx);
+  --db:       var(--a-db);
+  --eo:       var(--a-eo);
+  --green:    var(--a-green);
+  --green-bg: var(--a-green-bg);
+  --red:      var(--a-red);
+  --red-bg:   var(--a-red-bg);
+
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background:  var(--a-bg);
   color:       var(--a-t1);

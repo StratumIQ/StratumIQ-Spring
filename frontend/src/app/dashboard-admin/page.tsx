@@ -6,18 +6,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { adminApi } from "@/services/admin/adminClient";
+import KpiCard from "@/components/dashboard/common/KpiCard";
 import type { AdminKpis, ChartSeries } from "@/types/admin";
-
-function KpiCard({ label, value, icon: Icon }: { label: string; value: number | string; icon: React.ElementType }) {
-  return (
-    <div className="admin-glass admin-kpi">
-      <div className="admin-kpi-label">
-        <Icon size={13} style={{ color: "#E8692C", flexShrink: 0 }} /> {label}
-      </div>
-      <div className="admin-kpi-value">{value}</div>
-    </div>
-  );
-}
 
 function ChartCard({ title, data, loading }: { title: string; data: ChartSeries | undefined; loading: boolean }) {
   if (loading) {
@@ -115,12 +105,12 @@ export default function AdminDashboardPage() {
 
       {/* KPI cards */}
       <div className="admin-kpi-grid">
-        <KpiCard label="Total Users"        value={kpis?.totalUsers ?? 0}          icon={Users}     />
-        <KpiCard label="Active Today"       value={kpis?.activeUsersToday ?? 0}    icon={Activity}  />
-        <KpiCard label="New Registrations"  value={kpis?.newRegistrations ?? 0}    icon={UserPlus}  />
-        <KpiCard label="Total Fleets"       value={kpis?.totalFleets ?? 0}         icon={Truck}     />
-        <KpiCard label="Total Equipment"    value={kpis?.totalEquipment ?? 0}      icon={Truck}     />
-        <KpiCard label="Open Tickets"       value={kpis?.openSupportTickets ?? 0}  icon={Headphones}/>
+        <KpiCard label="Total Users"        value={kpis?.totalUsers ?? 0}          icon={<Users size={18} />}     />
+        <KpiCard label="Active Today"       value={kpis?.activeUsersToday ?? 0}    icon={<Activity size={18} />}  />
+        <KpiCard label="New Registrations"  value={kpis?.newRegistrations ?? 0}    icon={<UserPlus size={18} />}  />
+        <KpiCard label="Total Fleets"       value={kpis?.totalFleets ?? 0}         icon={<Truck size={18} />}     />
+        <KpiCard label="Total Equipment"    value={kpis?.totalEquipment ?? 0}      icon={<Truck size={18} />}     />
+        <KpiCard label="Open Tickets"       value={kpis?.openSupportTickets ?? 0}  icon={<Headphones size={18} />}/>
       </div>
 
       {/* Charts */}

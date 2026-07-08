@@ -4,7 +4,7 @@
    STRATUMIQ DESIGN SYSTEM
    Fonts injected via next/font/google CSS variables:
      --font-body    → DM Sans
-     --font-heading → Syne
+     --font-heading → Space Grotesk
 ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Custom Properties ─────────────────────────────────── */
@@ -21,21 +21,21 @@
   --font-mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Dashboard surface */
-  --d-bg:       #F5F0EE;
+  --d-bg:       #F4F5F7;
   --d-surface:  #FFFFFF;
-  --d-surface2: #EDE7E3;
+  --d-surface2: #FAFAFA;
 
-  --d-text:   #111827;
+  --d-text:   #0A0A0B;
   --d-text2:  #374151;
-  --d-text3:  #9CA3AF;
+  --d-text3:  #6B7280;
 
-  --d-border:  rgba(0, 0, 0, 0.07);
-  --d-border2: rgba(0, 0, 0, 0.04);
+  --d-border:  rgba(0, 0, 0, 0.08);
+  --d-border2: rgba(0, 0, 0, 0.05);
 
   --d-shadow-xs: 0 1px 3px rgba(0,0,0,0.04);
-  --d-shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-  --d-shadow-md: 0 4px 20px rgba(0,0,0,0.08);
-  --d-shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --d-shadow-sm: 0 2px 8px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --d-shadow-md: 0 4px 16px rgba(0,0,0,.09), 0 2px 4px rgba(0,0,0,.04);
+  --d-shadow-lg: 0 8px 32px rgba(0,0,0,.11), 0 2px 8px rgba(0,0,0,.05);
 
   --d-red:   #DC2626;
   --d-amber: #D97706;
