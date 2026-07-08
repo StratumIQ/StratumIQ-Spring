@@ -36,13 +36,13 @@ class AdminMapperTest {
             .description("Cannot sign in")
             .status(TicketStatus.OPEN)
             .priority(TicketPriority.HIGH)
-            .type(SupportType.FEEDBACK)
+            .type(SupportType.EQUIPMENT)
             .build();
 
         when(userRepository.findById(10L)).thenReturn(java.util.Optional.empty());
 
         AdminTicketResponse response = mapper.toTicketResponse(ticket, List.of());
 
-        assertThat(response.type()).isEqualTo(SupportType.FEEDBACK.name());
+        assertThat(response.type()).isEqualTo(SupportType.EQUIPMENT.name());
     }
 }
