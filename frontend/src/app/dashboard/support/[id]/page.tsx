@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Clock3, FileImage, Headphones, MessageSquareText, Paperclip, Send, Sparkles, Ticket, Bug, Wrench, HelpCircle, ShieldAlert, Settings } from "lucide-react";
+import { ArrowLeft, Clock3, FileImage, Headphones, MessageSquareText, Paperclip, Send, Ticket, Bug, Wrench, Settings, Truck, Package, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import PageShell from "@/components/dashboard/layout/PageShell";
 import GlassCard from "@/components/dashboard/ui/GlassCard";
@@ -17,7 +17,7 @@ import { ApiError, dashApi } from "@/lib/api/client";
 type SupportTicket = {
   id: number;
   ticketNumber: string;
-  type: "TICKET" | "FEEDBACK";
+  type: "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
   subject: string;
   description: string | null;
   status: "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED";
@@ -187,13 +187,12 @@ export default function SupportTicketDetailPage() {
                   {(() => {
                     const issueType = (ticket as any).issueType as string | undefined;
                     const key = (issueType || ticket.type || "").toString().toLowerCase();
-                    if (key.includes("bug")) return <Bug size={14} />;
-                    if (key.includes("feature")) return <Sparkles size={14} />;
-                    if (key.includes("question") || key.includes("help")) return <HelpCircle size={14} />;
-                    if (key.includes("equipment") || key.includes("equipment_issue") || key.includes("asset")) return <Settings size={14} />;
-                    if (key.includes("maintenance")) return <Wrench size={14} />;
-                    if (key.includes("safety")) return <ShieldAlert size={14} />;
-                    if (ticket.type === "FEEDBACK") return <Sparkles size={14} />;
+                    if (key.includes("fleet")) return <Truck size={14} />;
+                    if (key.includes("equipment")) return <Settings size={14} />;
+                    if (key.includes("service")) return <Wrench size={14} />;
+                    if (key.includes("order")) return <Package size={14} />;
+                    if (key.includes("billing") || key.includes("account")) return <CreditCard size={14} />;
+                    if (key.includes("platform")) return <Bug size={14} />;
                     return <Ticket size={14} />;
                   })()} {ticket.ticketNumber}
                 </div>

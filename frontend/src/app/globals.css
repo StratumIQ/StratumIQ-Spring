@@ -295,6 +295,7 @@ body:has(.dash-root) {
   color:        var(--d-text);
   font-family:  inherit;
   font-size:    14px;
+  font-weight:  400;
   outline:      none;
   transition:   border-color 0.15s, box-shadow 0.15s;
 }
@@ -302,7 +303,18 @@ body:has(.dash-root) {
   border-color: var(--orange);
   box-shadow:   0 0 0 3px rgba(232,105,44,0.10);
 }
-.dash-input::placeholder { color: var(--d-text3); }
+.dash-input::placeholder { color: var(--d-text3); font-weight: 400; }
+
+input.dash-input,
+select.dash-input {
+  line-height: 39px;
+}
+textarea.dash-input {
+  height:      auto;
+  min-height:  120px;
+  padding:     12px 14px;
+  line-height: 1.6;
+}
 
 /* ── Animations ────────────────────────────────────────────── */
 @keyframes dash-up {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headset, Paperclip, X } from "lucide-react";
+import { Headset, Paperclip, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import Button from "@/components/dashboard/ui/Button";
 import { ApiError, dashApi } from "@/lib/api/client";
@@ -18,8 +18,8 @@ type Props = {
 };
 
 export type FormState = {
-  type: "TICKET" | "FEEDBACK" | "BUG" | "UI_ISSUE" | "PERFORMANCE" | "INTEGRATION" | "FEATURE_REQUEST" | "GENERAL_QUESTION";
-  priority: "LOW" | "MEDIUM" | "HIGH";
+  type: "" | "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
+  priority: "" | "LOW" | "MEDIUM" | "HIGH";
   subject: string;
   description: string;
 };
@@ -27,10 +27,43 @@ export type FormState = {
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 const INITIAL_FORM: FormState = {
-  type: "TICKET",
-  priority: "MEDIUM",
+  type: "",
+  priority: "",
   subject: "",
   description: "",
+};
+
+export const DRAFT_STORAGE_KEY = "support-composer-draft";
+
+const isDraftWorthKeeping = (draft: FormState) =>
+  draft.subject.trim().length > 0 || draft.description.trim().length > 0;
+
+export const loadDraft = (): FormState | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as FormState;
+    return isDraftWorthKeeping(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveDraft = (draft: FormState) => {
+  if (typeof window === "undefined") return;
+  if (!isDraftWorthKeeping(draft)) {
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } else {
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  }
+  window.dispatchEvent(new Event("support-draft-changed"));
+};
+
+export const clearDraft = () => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+  window.dispatchEvent(new Event("support-draft-changed"));
 };
 
 export default function SupportComposerModal({
@@ -45,27 +78,54 @@ export default function SupportComposerModal({
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const skipNextAutosave = useRef(false);
 
   useEffect(() => {
     if (open) {
+      const hasPrefill = Boolean(initialSubject || initialDescription);
+      const draft = hasPrefill ? null : loadDraft();
+
+      skipNextAutosave.current = true;
       setForm({
-        type: initialType ?? INITIAL_FORM.type,
-        priority: initialPriority ?? INITIAL_FORM.priority,
-        subject: initialSubject ?? "",
-        description: initialDescription ?? "",
+        type: draft?.type ?? initialType ?? INITIAL_FORM.type,
+        priority: draft?.priority ?? initialPriority ?? INITIAL_FORM.priority,
+        subject: draft?.subject ?? initialSubject ?? "",
+        description: draft?.description ?? initialDescription ?? "",
       });
+      setDraftRestored(Boolean(draft));
       setErrors({});
       setSubmitting(false);
       return;
     }
 
     setForm(INITIAL_FORM);
+    setDraftRestored(false);
     setErrors({});
     setSubmitting(false);
   }, [open, initialType, initialPriority, initialSubject, initialDescription]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (skipNextAutosave.current) {
+      skipNextAutosave.current = false;
+      return;
+    }
+    saveDraft(form);
+    setDraftRestored((current) => current && isDraftWorthKeeping(form));
+  }, [open, form]);
+
+  const handleDiscardDraft = () => {
+    clearDraft();
+    skipNextAutosave.current = true;
+    setForm(INITIAL_FORM);
+    setDraftRestored(false);
+  };
+
   const validate = () => {
     const nextErrors: FormErrors = {};
+    if (!form.type) nextErrors.type = "Please select an issue type.";
+    if (!form.priority) nextErrors.priority = "Please select a priority.";
     if (!form.subject.trim()) nextErrors.subject = "Please add a short subject.";
     if (!form.description.trim()) nextErrors.description = "Please describe the issue so we can help quickly.";
     if (form.description.trim().length < 12) nextErrors.description = "Add a bit more detail so the team can triage it properly.";
@@ -87,6 +147,7 @@ export default function SupportComposerModal({
           description: form.description.trim(),
         },
       });
+      clearDraft();
       toast.success("Support request submitted");
       onSubmitted?.();
       onClose();
@@ -128,60 +189,100 @@ export default function SupportComposerModal({
             </div>
 
             <div className="d-modal-body" style={{ display: "grid", gap: 14 }}>
+              {draftRestored ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    border: "1px solid var(--b1)",
+                    background: "var(--s1)",
+                    fontSize: 12,
+                    color: "var(--t3)",
+                  }}
+                >
+                  <span>Restored your unsent draft.</span>
+                  <button
+                    type="button"
+                    onClick={handleDiscardDraft}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      background: "none",
+                      border: "none",
+                      color: "var(--or)",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontSize: 12,
+                    }}
+                  >
+                    <Trash2 size={12} /> Discard draft
+                  </button>
+                </div>
+              ) : null}
+
               <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--t2)" }}>
-                  Issue type
+                  <span>Issue type <span style={{ color: "var(--or)" }}>*</span></span>
                   <select
                     className="dash-input"
                     value={form.type}
                     onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as FormState["type"] }))}
+                    style={{ fontWeight: form.type ? 500 : 400, color: form.type ? "var(--t1)" : "var(--t3)" }}
                   >
-                    <option value="FEEDBACK">Feedback</option>
-                    <option value="BUG">Bug</option>
-                    <option value="UI_ISSUE">UI issue</option>
-                    <option value="PERFORMANCE">Performance</option>
-                    <option value="INTEGRATION">Integration</option>
-                    <option value="FEATURE_REQUEST">Feature request</option>
-                    <option value="GENERAL_QUESTION">General question</option>
-                    <option value="TICKET">Service request</option>
+                    <option value="" disabled>Select issue type</option>
+                    <option value="FLEET">Fleet</option>
+                    <option value="EQUIPMENT">Equipment</option>
+                    <option value="SERVICE">Service</option>
+                    <option value="ORDER">Order / Aftermarket</option>
+                    <option value="BILLING_ACCOUNT">Billing / Account</option>
+                    <option value="PLATFORM">Platform</option>
+                    <option value="OTHER">Other</option>
                   </select>
                   {errors.type ? <span style={{ color: "var(--or)", fontSize: 12 }}>{errors.type}</span> : null}
                 </label>
 
                 <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--t2)" }}>
-                  Priority
+                  <span>Priority <span style={{ color: "var(--or)" }}>*</span></span>
                   <select
                     className="dash-input"
                     value={form.priority}
                     onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as FormState["priority"] }))}
+                    style={{ fontWeight: form.priority ? 500 : 400, color: form.priority ? "var(--t1)" : "var(--t3)" }}
                   >
+                    <option value="" disabled>Select priority</option>
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option>
                   </select>
+                  {errors.priority ? <span style={{ color: "var(--or)", fontSize: 12 }}>{errors.priority}</span> : null}
                 </label>
               </div>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--t2)" }}>
-                Subject
+                <span>Subject <span style={{ color: "var(--or)" }}>*</span></span>
                 <input
                   className="dash-input"
                   value={form.subject}
                   onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
-                  placeholder="Short summary of the issue"
+                  placeholder="Briefly summarize the issue"
                 />
                 {errors.subject ? <span style={{ color: "var(--or)", fontSize: 12 }}>{errors.subject}</span> : null}
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--t2)" }}>
-                Description
+                <span>Description <span style={{ color: "var(--or)" }}>*</span></span>
                 <textarea
                   className="dash-input"
                   rows={6}
                   maxLength={1400}
                   value={form.description}
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                  placeholder="Share the impact, affected workflow, and any details the team should know."
+                  placeholder="Describe the issue and any details that would help us resolve it."
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "var(--t3)" }}>
                   <span>{errors.description ? <span style={{ color: "var(--or)" }}>{errors.description}</span> : "A clear description helps us resolve the issue faster."}</span>

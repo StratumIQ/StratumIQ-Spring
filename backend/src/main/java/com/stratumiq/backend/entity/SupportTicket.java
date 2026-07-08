@@ -72,5 +72,5 @@ public class SupportTicket {
     @Enumerated(EnumType.STRING)
 @Column(nullable = false, length = 20)
 @Builder.Default
-private SupportType type = SupportType.TICKET;
+private SupportType type = SupportType.OTHER;
 }

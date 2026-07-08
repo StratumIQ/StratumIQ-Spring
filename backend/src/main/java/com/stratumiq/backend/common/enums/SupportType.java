@@ -1,6 +1,11 @@
 package com.stratumiq.backend.common.enums;
 
 public enum SupportType {
-    TICKET,
-    FEEDBACK
+    FLEET,
+    EQUIPMENT,
+    SERVICE,
+    ORDER,
+    BILLING_ACCOUNT,
+    PLATFORM,
+    OTHER
 }

@@ -1,0 +1,3 @@
+UPDATE support_tickets
+SET type = 'OTHER'
+WHERE type NOT IN ('FLEET', 'EQUIPMENT', 'SERVICE', 'ORDER', 'BILLING_ACCOUNT', 'PLATFORM', 'OTHER');

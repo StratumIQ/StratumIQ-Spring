@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headphones, MessageSquareText, Plus, Send, Sparkles, Ticket, Clock3, ChevronRight, CheckCircle2, Bug, Wrench, HelpCircle, ShieldAlert, Settings } from "lucide-react";
+import { Headphones, Plus, Ticket, Clock3, CheckCircle2, Bug, Wrench, Settings, FileEdit, Trash2, Truck, Package, CreditCard } from "lucide-react";
 import KpiCard from "@/components/dashboard/common/KpiCard";
-import SupportComposerModal from "@/components/dashboard/support/SupportComposerModal";
+import SupportComposerModal, { loadDraft, clearDraft, type FormState as DraftFormState } from "@/components/dashboard/support/SupportComposerModal";
 import { toast } from "sonner";
 import PageShell from "@/components/dashboard/layout/PageShell";
 import FilterBar from "@/components/dashboard/common/FilterBar";
@@ -20,7 +20,7 @@ import { ApiError, dashApi } from "@/lib/api/client";
 type SupportTicket = {
   id: number;
   ticketNumber: string;
-  type: "TICKET" | "FEEDBACK";
+  type: "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
   subject: string;
   description: string | null;
   status: "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED";
@@ -38,14 +38,10 @@ type SupportTicket = {
 };
 
 type CreateTicketPayload = {
-  type: "TICKET" | "FEEDBACK";
+  type: "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
   subject: string;
   description: string;
   priority: "LOW" | "MEDIUM" | "HIGH";
-};
-
-type ReplyPayload = {
-  body: string;
 };
 
 const statusConfig: Record<SupportTicket["status"], { label: string; variant: "default" | "warning" | "success" | "danger" | "info" | "orange" }> = {
@@ -81,9 +77,25 @@ export default function SupportPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showComposer, setShowComposer] = useState(false);
-  const [reply, setReply] = useState("");
+  const [draft, setDraft] = useState<DraftFormState | null>(null);
+
+  useEffect(() => {
+    const refreshDraft = () => setDraft(loadDraft());
+    refreshDraft();
+    window.addEventListener("support-draft-changed", refreshDraft);
+    window.addEventListener("storage", refreshDraft);
+    return () => {
+      window.removeEventListener("support-draft-changed", refreshDraft);
+      window.removeEventListener("storage", refreshDraft);
+    };
+  }, []);
+
+  const handleDeleteDraft = () => {
+    clearDraft();
+    setDraft(null);
+  };
   const [form, setForm] = useState<CreateTicketPayload>({
-    type: "TICKET",
+    type: "OTHER",
     subject: "",
     description: "",
     priority: "MEDIUM",
@@ -92,9 +104,9 @@ export default function SupportPage() {
   useEffect(() => {
     const requestedType = searchParams.get("type")?.toLowerCase();
     if (requestedType === "feedback") {
-      setForm((prev) => ({ ...prev, type: "FEEDBACK" }));
+      setForm((prev) => ({ ...prev, type: "OTHER" }));
     } else if (requestedType === "manual") {
-      setForm((prev) => ({ ...prev, type: "TICKET" }));
+      setForm((prev) => ({ ...prev, type: "SERVICE" }));
     }
   }, [searchParams]);
 
@@ -120,49 +132,19 @@ export default function SupportPage() {
     }
   }, [tickets, selectedId]);
 
-  const selectedTicket = useMemo(
-    () => tickets.find((ticket) => ticket.id === selectedId) ?? null,
-    [selectedId, tickets],
-  );
-
-  const { data: detailTicket, isLoading: detailLoading } = useQuery({
-    queryKey: ["dashboard", "support", "ticket", selectedId],
-    queryFn: () => dashApi<SupportTicket>(`/support/tickets/${selectedId}`),
-    enabled: Boolean(selectedId),
-    staleTime: 10000,
-  });
-
   const createTicketMutation = useMutation({
     mutationFn: (payload: CreateTicketPayload) =>
       dashApi<SupportTicket>("/support/tickets", { method: "POST", body: payload }),
     onSuccess: (ticket) => {
       toast.success("Request submitted successfully");
       setShowComposer(false);
-      setForm({ type: "TICKET", subject: "", description: "", priority: "MEDIUM" });
+      setForm({ type: "OTHER", subject: "", description: "", priority: "MEDIUM" });
       setSelectedId(ticket.id);
       queryClient.invalidateQueries({ queryKey: ["dashboard", "support", "tickets"] });
       router.replace("/dashboard/support");
     },
     onError: (error) => {
       const message = error instanceof ApiError ? error.message : "We couldn’t create your request";
-      toast.error(message);
-    },
-  });
-
-  const addReplyMutation = useMutation({
-    mutationFn: (payload: ReplyPayload) =>
-      dashApi<SupportTicket>(`/support/tickets/${selectedId}/notes`, {
-        method: "POST",
-        body: payload,
-      }),
-    onSuccess: () => {
-      toast.success("Reply sent");
-      setReply("");
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "support", "ticket", selectedId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "support", "tickets"] });
-    },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "We couldn’t send that reply";
       toast.error(message);
     },
   });
@@ -174,11 +156,6 @@ export default function SupportPage() {
     }
 
     createTicketMutation.mutate(form);
-  };
-
-  const handleReply = () => {
-    if (!reply.trim() || !selectedId) return;
-    addReplyMutation.mutate({ body: reply.trim() });
   };
 
   const summary = useMemo(() => {
@@ -206,7 +183,7 @@ export default function SupportPage() {
             <KpiCard label="Resolved" value={tickets.filter((t) => t.status === "RESOLVED").length} icon={<Ticket size={18} />} color="#10B981" />
           </div>
 
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)" }}>
+          <div style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <FilterBar
                 search={search}
@@ -235,6 +212,39 @@ export default function SupportPage() {
                 }
               />
 
+              {draft ? (
+                <GlassCard padding="md" className="d-support-draft-card">
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <span style={{ color: "var(--or)", display: "inline-flex", marginTop: 2 }}>
+                        <FileEdit size={16} />
+                      </span>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--or)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                            Draft
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>
+                          {draft.subject.trim() || "Untitled draft"}
+                        </div>
+                        <p style={{ margin: "6px 0 0", color: "var(--t3)", fontSize: 13, lineHeight: 1.5 }}>
+                          {draft.description.trim() || "No description yet."}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <Button size="sm" variant="outline" onClick={() => setShowComposer(true)}>
+                        Continue editing
+                      </Button>
+                      <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={handleDeleteDraft}>
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </GlassCard>
+              ) : null}
+
               {isLoading ? (
                 <div style={{ display: "grid", gap: 12 }}>
                   {[1, 2, 3].map((item) => (
@@ -261,13 +271,12 @@ export default function SupportPage() {
                     const issueType = (ticket as any).issueType as string | undefined;
                     const getTicketIcon = () => {
                       const key = (issueType || ticket.type || "").toString().toLowerCase();
-                      if (key.includes("bug")) return <Bug size={15} />;
-                      if (key.includes("feature")) return <Sparkles size={15} />;
-                      if (key.includes("question") || key.includes("help")) return <HelpCircle size={15} />;
-                      if (key.includes("equipment") || key.includes("equipment_issue") || key.includes("equipment issue") || key.includes("asset")) return <Settings size={15} />;
-                      if (key.includes("maintenance")) return <Wrench size={15} />;
-                      if (key.includes("safety")) return <ShieldAlert size={15} />;
-                      if (ticket.type === "FEEDBACK") return <Sparkles size={15} />;
+                      if (key.includes("fleet")) return <Truck size={15} />;
+                      if (key.includes("equipment")) return <Settings size={15} />;
+                      if (key.includes("service")) return <Wrench size={15} />;
+                      if (key.includes("order")) return <Package size={15} />;
+                      if (key.includes("billing") || key.includes("account")) return <CreditCard size={15} />;
+                      if (key.includes("platform")) return <Bug size={15} />;
                       return <Ticket size={15} />;
                     };
                     return (
@@ -309,87 +318,6 @@ export default function SupportPage() {
                   })}
                 </div>
               )}
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <GlassCard padding="lg">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--t3)" }}>Conversation</div>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, margin: "4px 0 0", color: "var(--t1)" }}>
-                      {selectedTicket ? selectedTicket.subject : "Select a request"}
-                    </h3>
-                  </div>
-                  {selectedTicket && (
-                    <Badge variant={statusConfig[selectedTicket.status].variant} size="md">
-                      {statusConfig[selectedTicket.status].label}
-                    </Badge>
-                  )}
-                </div>
-
-                {!selectedTicket ? (
-                  <div style={{ marginTop: 18 }}>
-                    <EmptyState icon={MessageSquareText} title="No conversation selected" description="Pick a ticket from the list to view the full thread." />
-                  </div>
-                ) : detailLoading ? (
-                  <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
-                    <Skeleton height={54} />
-                    <Skeleton height={54} />
-                    <Skeleton height={54} />
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
-                      <div className="d-support-thread-card">
-                        <div style={{ fontSize: 13, color: "var(--t3)" }}>Request details</div>
-                        <div style={{ marginTop: 6, lineHeight: 1.7, color: "var(--t2)", fontSize: 14 }}>
-                          {detailTicket?.description || "No additional context has been shared yet."}
-                        </div>
-                      </div>
-                      <div className="d-support-thread-card d-support-thread-card--soft">
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                          <MessageSquareText size={16} color="var(--or)" />
-                          <span style={{ fontWeight: 700, color: "var(--t1)" }}>Timeline</span>
-                        </div>
-                        {(!detailTicket?.notes || detailTicket.notes.length === 0) ? (
-                          <div style={{ color: "var(--t3)", fontSize: 13 }}>No updates yet. We’ll show the latest notes here.</div>
-                        ) : (
-                          <div className="d-support-thread-list">
-                            {detailTicket.notes.map((note) => (
-                              <div key={note.id} className="d-support-thread-item">
-                                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                                  <span style={{ fontSize: 12, color: "var(--t3)" }}>{note.isInternal ? "Internal note" : "Customer update"}</span>
-                                  <span style={{ fontSize: 12, color: "var(--t3)" }}>{formatDate(note.createdAt)}</span>
-                                </div>
-                                <div style={{ marginTop: 6, fontSize: 13, color: "var(--t2)", lineHeight: 1.6 }}>{note.body}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="d-support-update-box">
-                      <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--t3)", marginBottom: 8 }} htmlFor="reply">
-                        Add an update
-                      </label>
-                      <textarea
-                        id="reply"
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                        rows={4}
-                        className="d-support-update-textarea"
-                        placeholder="Share an update for the support team…"
-                      />
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                        <Button size="sm" icon={<Send size={14} />} loading={addReplyMutation.isPending} onClick={handleReply}>
-                          Send update
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </GlassCard>
             </div>
           </div>
         </div>

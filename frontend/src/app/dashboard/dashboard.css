@@ -2042,6 +2042,7 @@
 .d-support-ticket-card-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .d-support-ticket-card-meta { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; color:var(--t3); }
 .d-support-ticket-card-open { margin-left:auto; color:var(--t3); font-weight:600; }
+.d-support-draft-card { border: 1px dashed var(--or); background: var(--s1); }
 .d-support-thread-card { padding:12px; border-radius:var(--r7); border:1px solid var(--b1); background:var(--s1); }
 .d-support-thread-card--soft { background: transparent; border-color: var(--b2); }
 .d-support-thread-list { display:flex; flex-direction:column; gap:12px; }
