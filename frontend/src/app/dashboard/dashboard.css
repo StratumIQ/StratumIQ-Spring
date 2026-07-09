@@ -2043,6 +2043,45 @@
 .d-support-ticket-card-meta { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; color:var(--t3); }
 .d-support-ticket-card-open { margin-left:auto; color:var(--t3); font-weight:600; }
 .d-support-draft-card { border: 1px dashed var(--or); background: var(--s1); }
+.d-support-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.d-support-contact-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--r7);
+  border: 1px solid var(--b1);
+  background: var(--s0);
+  box-shadow: var(--sx);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform var(--df) var(--eo), box-shadow var(--df) var(--eo), border-color var(--df) var(--eo);
+}
+.d-support-contact-tile:hover { transform: translateY(-2px); box-shadow: var(--ss); border-color: rgba(232,105,44,0.20); }
+.d-support-contact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r5);
+  border: 1px solid;
+  flex-shrink: 0;
+}
+.d-support-contact-title { font-size: 14px; font-weight: 700; color: var(--t1); }
+.d-support-contact-sub { font-size: 12.5px; color: var(--t3); margin-top: 2px; }
+@media (max-width: 900px) {
+  .d-support-contact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .d-support-contact-grid { grid-template-columns: 1fr; }
+}
 .d-support-thread-card { padding:12px; border-radius:var(--r7); border:1px solid var(--b1); background:var(--s1); }
 .d-support-thread-card--soft { background: transparent; border-color: var(--b2); }
 .d-support-thread-list { display:flex; flex-direction:column; gap:12px; }

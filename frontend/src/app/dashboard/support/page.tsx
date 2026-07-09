@@ -1,21 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headphones, Plus, Ticket, Clock3, CheckCircle2, Bug, Wrench, Settings, FileEdit, Trash2, Truck, Package, CreditCard } from "lucide-react";
-import KpiCard from "@/components/dashboard/common/KpiCard";
+import { Headphones, Ticket, Clock3, Bug, Wrench, Settings, FileEdit, Trash2, Truck, Package, CreditCard, Phone, Mail, MessageCircle, LifeBuoy } from "lucide-react";
 import SupportComposerModal, { loadDraft, clearDraft, type FormState as DraftFormState } from "@/components/dashboard/support/SupportComposerModal";
+import AIAssistant from "@/components/dashboard/AIAssistant";
 import { toast } from "sonner";
 import PageShell from "@/components/dashboard/layout/PageShell";
-import FilterBar from "@/components/dashboard/common/FilterBar";
 import GlassCard from "@/components/dashboard/ui/GlassCard";
 import Button from "@/components/dashboard/ui/Button";
 import Badge from "@/components/dashboard/ui/Badge";
 import EmptyState from "@/components/dashboard/ui/EmptyState";
 import Skeleton from "@/components/dashboard/ui/Skeleton";
 import { ApiError, dashApi } from "@/lib/api/client";
+
+const SUPPORT_PHONE = "+1 (800) 555-0199";
+const SUPPORT_EMAIL = "support@stratumiq.com";
+
+const CHAT_SUGGESTIONS = ["Track my ticket", "Report an equipment issue", "Talk to a human", "Billing question"];
+const CHAT_SYSTEM_PROMPT = `You are the StratumIQ Support Assistant — helpful, concise, professional.
+You help customers with fleet, equipment, service, orders, and billing questions, and guide them to raise a support ticket when you can't resolve the issue yourself.
+Keep responses concise (2–4 sentences). If the user needs a human, tell them to use "Raise an issue" to open a ticket.`;
 
 type SupportTicket = {
   id: number;
@@ -73,10 +80,9 @@ export default function SupportPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showComposer, setShowComposer] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [draft, setDraft] = useState<DraftFormState | null>(null);
 
   useEffect(() => {
@@ -110,17 +116,9 @@ export default function SupportPage() {
     }
   }, [searchParams]);
 
-  const { data: tickets = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["dashboard", "support", "tickets", search, statusFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") params.set("status", statusFilter);
-      if (search.trim()) params.set("search", search.trim());
-      params.set("page", "1");
-      params.set("limit", "10");
-      const suffix = params.toString() ? `?${params.toString()}` : "";
-      return dashApi<SupportTicket[]>(`/support/tickets${suffix}`);
-    },
+  const { data: tickets = [], isLoading } = useQuery({
+    queryKey: ["dashboard", "support", "tickets"],
+    queryFn: () => dashApi<SupportTicket[]>("/support/tickets?page=1&limit=5"),
   });
 
   useEffect(() => {
@@ -158,60 +156,64 @@ export default function SupportPage() {
     createTicketMutation.mutate(form);
   };
 
-  const summary = useMemo(() => {
-    const resolved = tickets.filter((ticket) => ticket.status === "RESOLVED").length;
-    const open = tickets.filter((ticket) => ticket.status !== "RESOLVED").length;
-    return { resolved, open };
-  }, [tickets]);
-
   return (
     <>
       <PageShell
         title="Support Center"
-        description="Manage and track all your support requests."
-        actions={
-          <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={() => setShowComposer(true)}>
-            New request
-          </Button>
-        }
+        description="We're here to help. Choose how you'd like to reach us."
       >
-        <div style={{ display: "grid", gap: 12 }}>
-          <div className="d-kpi-grid" style={{ marginBottom: 6 }}>
-            <KpiCard label="Open" value={tickets.filter((t) => t.status !== "RESOLVED").length} icon={<Ticket size={18} />} color="#E8692C" />
-            <KpiCard label="Assigned" value={tickets.filter((t) => t.status === "ASSIGNED").length} icon={<CheckCircle2 size={18} />} color="#0EA5A5" />
-            <KpiCard label="Waiting" value={tickets.filter((t) => t.status === "WAITING_CUSTOMER").length} icon={<Clock3 size={18} />} color="#F59E0B" />
-            <KpiCard label="Resolved" value={tickets.filter((t) => t.status === "RESOLVED").length} icon={<Ticket size={18} />} color="#10B981" />
+        <div style={{ display: "grid", gap: 24 }}>
+          <div className="d-support-contact-grid">
+            <a href={`tel:${SUPPORT_PHONE.replace(/[^+\d]/g, "")}`} className="d-support-contact-tile">
+              <span className="d-support-contact-icon" style={{ color: "#0EA5A5", background: "#0EA5A514", borderColor: "#0EA5A528" }}>
+                <Phone size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Call Us</div>
+                <div className="d-support-contact-sub">{SUPPORT_PHONE}</div>
+              </div>
+            </a>
+
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="d-support-contact-tile">
+              <span className="d-support-contact-icon" style={{ color: "#2563EB", background: "#2563EB14", borderColor: "#2563EB28" }}>
+                <Mail size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Email Us</div>
+                <div className="d-support-contact-sub">{SUPPORT_EMAIL}</div>
+              </div>
+            </a>
+
+            <button type="button" className="d-support-contact-tile" onClick={() => setShowComposer(true)}>
+              <span className="d-support-contact-icon" style={{ color: "var(--or)", background: "var(--or-10)", borderColor: "var(--or-25)" }}>
+                <LifeBuoy size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Raise an Issue</div>
+                <div className="d-support-contact-sub">Open a support ticket</div>
+              </div>
+            </button>
+
+            <button type="button" className="d-support-contact-tile" onClick={() => setShowChat(true)}>
+              <span className="d-support-contact-icon" style={{ color: "#16A34A", background: "#16A34A14", borderColor: "#16A34A28" }}>
+                <MessageCircle size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Live Chat</div>
+                <div className="d-support-contact-sub">Chat with our assistant</div>
+              </div>
+            </button>
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <FilterBar
-                search={search}
-                onSearchChange={(value) => setSearch(value)}
-                searchPlaceholder="Search tickets or subjects"
-                selects={[
-                  {
-                    key: "status",
-                    value: statusFilter,
-                    options: [
-                      { value: "all", label: "All statuses" },
-                      { value: "OPEN", label: "Open" },
-                      { value: "ASSIGNED", label: "Assigned" },
-                      { value: "IN_PROGRESS", label: "In progress" },
-                      { value: "WAITING_CUSTOMER", label: "Waiting customer" },
-                      { value: "RESOLVED", label: "Resolved" },
-                    ],
-                    onChange: setStatusFilter,
-                    width: 190,
-                  },
-                ]}
-                trailing={
-                  <Button variant="outline" size="sm" icon={<Headphones size={14} />} onClick={() => setShowComposer(true)}>
-                    New request
-                  </Button>
-                }
-              />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", margin: 0 }}>Your recent requests</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowComposer(true)}>
+                New request
+              </Button>
+            </div>
 
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {draft ? (
                 <GlassCard padding="md" className="d-support-draft-card">
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
@@ -323,14 +325,27 @@ export default function SupportPage() {
         </div>
       </PageShell>
 
+      {showChat ? (
+        <div style={{ position: "fixed", bottom: 96, right: 24, zIndex: 60 }}>
+          <AIAssistant
+            floating
+            title="Live Support Chat"
+            welcomeMessage="Hi! I'm the StratumIQ support assistant. Ask me about your fleet, equipment, orders, or billing — or I can point you to a human."
+            systemPrompt={CHAT_SYSTEM_PROMPT}
+            suggestions={CHAT_SUGGESTIONS}
+            onClose={() => setShowChat(false)}
+          />
+        </div>
+      ) : null}
+
       <motion.button
         type="button"
-        onClick={() => setShowComposer(true)}
+        onClick={() => setShowChat((open) => !open)}
         className="d-support-fab"
         whileHover={{ y: -2, scale: 1.04, boxShadow: "0 20px 40px rgba(232,105,44,0.32)" }}
         whileTap={{ scale: 0.96 }}
-        aria-label="Support"
-        title="Support"
+        aria-label="Live chat"
+        title="Live chat"
       >
         <Headphones size={24} />
       </motion.button>
