@@ -5,16 +5,33 @@ import { BRAND, DASH } from "@/lib/constants";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const SYSTEM_PROMPT = `You are the StratumIQ AI Assistant — helpful, concise, professional.
+const DEFAULT_SYSTEM_PROMPT = `You are the StratumIQ AI Assistant — helpful, concise, professional.
 You help users set up their fleet, manage parts inventory, plan maintenance, and navigate platform features.
 Keep responses concise (2–4 sentences). Use bullet points for steps. Always guide users toward completing their StratumIQ setup.`;
 
-const SUGGESTED = ["Add Your Equipment", "Plan Inventory", "View Demo", "Chat with Copilot"];
+const DEFAULT_SUGGESTED = ["Add Your Equipment", "Plan Inventory", "View Demo", "Chat with Copilot"];
 
-export default function AIAssistant() {
+type Props = {
+  title?: string;
+  welcomeMessage?: string;
+  systemPrompt?: string;
+  suggestions?: string[];
+  onClose?: () => void;
+  /** Renders as a compact, self-contained widget (for floating popovers) instead of a sticky sidebar panel. */
+  floating?: boolean;
+};
+
+export default function AIAssistant({
+  title = "AI Onboarding Assistant",
+  welcomeMessage = "Welcome! I'm your StratumIQ AI Assistant. I can help you add equipment, plan inventory, or explore the platform.",
+  systemPrompt = DEFAULT_SYSTEM_PROMPT,
+  suggestions = DEFAULT_SUGGESTED,
+  onClose,
+  floating = false,
+}: Props) {
   const [messages, setMessages] = useState<Msg[]>([{
     role: "assistant",
-    content: "Welcome! I'm your StratumIQ AI Assistant. I can help you add equipment, plan inventory, or explore the platform.",
+    content: welcomeMessage,
   }]);
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +47,7 @@ export default function AIAssistant() {
     setInput("");
     setLoading(true);
     try {
-      const res  = await fetch("/api/ai-assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [...messages, userMsg], system: SYSTEM_PROMPT }) });
+      const res  = await fetch("/api/ai-assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [...messages, userMsg], system: systemPrompt }) });
       const data = await res.json();
       setMessages(p => [...p, { role: "assistant", content: data.content ?? "Sorry, I couldn't process that." }]);
     } catch {
@@ -41,7 +58,9 @@ export default function AIAssistant() {
   };
 
   return (
-    <div style={{ width: 264, flexShrink: 0, background: DASH.surface, border: `1px solid ${DASH.border}`, borderRadius: 14, boxShadow: DASH.shadowMd, display: "flex", flexDirection: "column", overflow: "hidden", alignSelf: "flex-start", position: "sticky", top: "calc(58px + 28px)", maxHeight: "calc(100vh - 58px - 56px)" }}>
+    <div style={floating
+      ? { width: 320, flexShrink: 0, background: DASH.surface, border: `1px solid ${DASH.border}`, borderRadius: 14, boxShadow: DASH.shadowMd, display: "flex", flexDirection: "column", overflow: "hidden", height: 460, maxHeight: "70vh" }
+      : { width: 264, flexShrink: 0, background: DASH.surface, border: `1px solid ${DASH.border}`, borderRadius: 14, boxShadow: DASH.shadowMd, display: "flex", flexDirection: "column", overflow: "hidden", alignSelf: "flex-start", position: "sticky", top: "calc(58px + 28px)", maxHeight: "calc(100vh - 58px - 56px)" }}>
 
       {/* Header */}
       <div style={{ padding: "12px 14px", background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -51,13 +70,22 @@ export default function AIAssistant() {
               <path d="M14 5C14 3.34 12.66 2 11 2H7C4.79 2 4.79 7 7 7H11C13.21 7 13.21 12 11 12H6" stroke={BRAND.orange} strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>AI Onboarding Assistant</span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>{title}</span>
         </div>
-        <button onClick={() => setOpen(o => !o)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", padding: 2 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {open ? <path d="M18 15l-6-6-6 6" strokeLinecap="round"/> : <path d="M6 9l6 6 6-6" strokeLinecap="round"/>}
-          </svg>
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => setOpen(o => !o)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", padding: 2 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {open ? <path d="M18 15l-6-6-6 6" strokeLinecap="round"/> : <path d="M6 9l6 6 6-6" strokeLinecap="round"/>}
+            </svg>
+          </button>
+          {onClose ? (
+            <button onClick={onClose} aria-label="Close chat" style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", padding: 2 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/>
+              </svg>
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {open && (
@@ -89,7 +117,7 @@ export default function AIAssistant() {
 
           {/* Quick actions */}
           <div style={{ padding: "5px 12px 9px", display: "flex", flexDirection: "column", gap: 4, borderTop: `1px solid ${DASH.border}` }}>
-            {SUGGESTED.map(s => (
+            {suggestions.map(s => (
               <button key={s} onClick={() => sendMessage(s)} style={{ width: "100%", padding: "6px 10px", borderRadius: 7, background: BRAND.navy, color: "#fff", border: "none", fontSize: 11.5, fontWeight: 600, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "opacity .15s" }}
                 onMouseOver={e => ((e.currentTarget as HTMLElement).style.opacity = ".8")}
                 onMouseOut={e => ((e.currentTarget as HTMLElement).style.opacity = "1")}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import PageShell from "@/components/dashboard/layout/PageShell";
 import ComingSoon from "@/components/dashboard/common/ComingSoon";
 import { activityApi } from "@/lib/api/activity";
 
@@ -12,5 +13,9 @@ export default function ConfiguratorPage() {
     }).catch(() => undefined);
   }, []);
 
-  return <ComingSoon module="Configurator" />;
+  return (
+    <PageShell>
+      <ComingSoon module="Configurator" />
+    </PageShell>
+  );
 }

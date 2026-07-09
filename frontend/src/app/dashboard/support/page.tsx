@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headphones, Ticket, Clock3, Bug, Wrench, Settings, FileEdit, Trash2, Truck, Package, CreditCard, Phone, Mail, MessageCircle, LifeBuoy } from "lucide-react";
+import { Headphones, Ticket, Bug, Wrench, Settings, FileEdit, Trash2, Truck, Package, CreditCard, Phone, Mail, MessageCircle, LifeBuoy } from "lucide-react";
 import SupportComposerModal, { loadDraft, clearDraft, type FormState as DraftFormState } from "@/components/dashboard/support/SupportComposerModal";
 import AIAssistant from "@/components/dashboard/AIAssistant";
 import { toast } from "sonner";
@@ -57,12 +57,6 @@ const statusConfig: Record<SupportTicket["status"], { label: string; variant: "d
   IN_PROGRESS: { label: "In progress", variant: "orange" },
   WAITING_CUSTOMER: { label: "Waiting customer", variant: "default" },
   RESOLVED: { label: "Resolved", variant: "success" },
-};
-
-const priorityConfig: Record<SupportTicket["priority"], { label: string; variant: "default" | "warning" | "success" | "danger" | "info" | "orange" }> = {
-  LOW: { label: "Low", variant: "default" },
-  MEDIUM: { label: "Medium", variant: "warning" },
-  HIGH: { label: "High", variant: "danger" },
 };
 
 function formatDate(value?: string) {
@@ -265,21 +259,20 @@ export default function SupportPage() {
                   action={{ label: "Create a request", onClick: () => setShowComposer(true) }}
                 />
               ) : (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 8 }}>
                   {tickets.map((ticket) => {
                     const status = statusConfig[ticket.status];
-                    const priority = priorityConfig[ticket.priority];
                     const isActive = ticket.id === selectedId;
                     const issueType = (ticket as any).issueType as string | undefined;
                     const getTicketIcon = () => {
                       const key = (issueType || ticket.type || "").toString().toLowerCase();
-                      if (key.includes("fleet")) return <Truck size={15} />;
-                      if (key.includes("equipment")) return <Settings size={15} />;
-                      if (key.includes("service")) return <Wrench size={15} />;
-                      if (key.includes("order")) return <Package size={15} />;
-                      if (key.includes("billing") || key.includes("account")) return <CreditCard size={15} />;
-                      if (key.includes("platform")) return <Bug size={15} />;
-                      return <Ticket size={15} />;
+                      if (key.includes("fleet")) return <Truck size={14} />;
+                      if (key.includes("equipment")) return <Settings size={14} />;
+                      if (key.includes("service")) return <Wrench size={14} />;
+                      if (key.includes("order")) return <Package size={14} />;
+                      if (key.includes("billing") || key.includes("account")) return <CreditCard size={14} />;
+                      if (key.includes("platform")) return <Bug size={14} />;
+                      return <Ticket size={14} />;
                     };
                     return (
                       <motion.button
@@ -289,32 +282,17 @@ export default function SupportPage() {
                           setSelectedId(ticket.id);
                           router.push(`/dashboard/support/${ticket.id}`);
                         }}
-                        className={`d-support-ticket-card${isActive ? " d-support-ticket-card--active" : ""}`}
-                        whileHover={{ y: -2, scale: 1.005 }}
-                        transition={{ duration: 0.16 }}
+                        className={`d-support-ticket-row${isActive ? " d-support-ticket-row--active" : ""}`}
+                        whileHover={{ x: 2 }}
+                        transition={{ duration: 0.14 }}
                       >
-                        <div className="d-support-ticket-card-head">
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ color: "var(--or)", display: "inline-flex" }}>{getTicketIcon()}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t3)" }}>{ticket.ticketNumber}</span>
-                          </div>
-                          <Badge variant={status.variant} size="md">
-                            {status.label}
-                          </Badge>
-                        </div>
-                        <div style={{ marginTop: 10, fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>{ticket.subject}</div>
-                        <p style={{ margin: "8px 0 8px", color: "var(--t3)", fontSize: 13, lineHeight: 1.55 }}>
-                          {ticket.description || "No description provided yet."}
-                        </p>
-                        <div className="d-support-ticket-card-meta">
-                          <Badge variant={priority.variant} size="sm">
-                            {priority.label} priority
-                          </Badge>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <Clock3 size={12} /> {formatDate(ticket.createdAt)}
-                          </span>
-                          <span className="d-support-ticket-card-open">Open thread →</span>
-                        </div>
+                        <span className="d-support-ticket-row-icon">{getTicketIcon()}</span>
+                        <span className="d-support-ticket-row-id">{ticket.ticketNumber}</span>
+                        <span className="d-support-ticket-row-subject">{ticket.subject}</span>
+                        <span className="d-support-ticket-row-date">{formatDate(ticket.createdAt)}</span>
+                        <Badge variant={status.variant} size="sm">
+                          {status.label}
+                        </Badge>
                       </motion.button>
                     );
                   })}

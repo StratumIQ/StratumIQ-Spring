@@ -5,6 +5,7 @@
  * Landing page styles are untouched.
  *
  * Theme   : Light · Orange #E8692C · White · Black
+ * Dark    : Reserved for pure live-monitoring views via .dash-live modifier
  * Motion  : Subtle & professional
  * Glass   : Medium — cards and modals only
  * ─────────────────────────────────────────────────────────────
@@ -110,6 +111,49 @@
   --d-shadow-sm: 0 2px 8px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
   --d-shadow-md: 0 4px 16px rgba(0,0,0,.09), 0 2px 4px rgba(0,0,0,.04);
   --d-shadow-lg: 0 8px 32px rgba(0,0,0,.11), 0 2px 8px rgba(0,0,0,.05);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   1B. LIVE-MONITORING DARK VARIANT
+   Apply className="dash-live" to a page's root wrapper (e.g. PageShell)
+   to render that page's content in the dark industrial monitoring theme.
+   Reserved for pure real-time monitoring views (e.g. Alerts) — the
+   persistent sidebar/topbar chrome stays light everywhere.
+═══════════════════════════════════════════════════════════ */
+.dash-live {
+  --bg:         #0D1117;
+  --s0:         #111827;
+  --glass:      rgba(17,24,39,0.7);
+  --s1:         #1A2332;
+  --s2:         #212C3D;
+  --s3:         #2A3647;
+
+  --t1:         #FFFFFF;
+  --t2:         #E5E7EB;
+  --t3:         #9CA3AF;
+  --t4:         #6B7280;
+
+  --b1:         rgba(255,255,255,.09);
+  --b2:         rgba(255,255,255,.05);
+
+  --green:      #22C55E;
+  --green-bg:   rgba(34,197,94,.16);
+  --amber:      #F59E0B;
+  --amber-bg:   rgba(245,158,11,.16);
+  --red:        #EF4444;
+  --red-bg:     rgba(239,68,68,.16);
+  --blue:       #0A84FF;
+  --blue-bg:    rgba(10,132,255,.16);
+
+  --sx:   0 1px 2px rgba(0,0,0,.40);
+  --ss:   0 2px 8px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.30);
+  --sm:   0 4px 16px rgba(0,0,0,.50), 0 2px 4px rgba(0,0,0,.30);
+  --sl:   0 8px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35);
+
+  background:    var(--bg);
+  color:         var(--t1);
+  border-radius: var(--r8);
+  padding:       20px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1231,16 +1275,16 @@
   align-items:    flex-start;
   justify-content: space-between;
   gap:            16px;
-  margin-bottom:  clamp(20px,3vw,28px);
+  margin-bottom:  20px;
   flex-wrap:      wrap;
 }
 
 .d-page-title {
-  font-size:      clamp(20px,2.5vw,26px);
-  font-weight:    800;
+  font-size:      19px;
+  font-weight:    700;
   color:          var(--t1);
-  letter-spacing: -.03em;
-  line-height:    1.15;
+  letter-spacing: -.02em;
+  line-height:    1.25;
 }
 
 .d-page-subtitle { font-size:13.5px; color:var(--t3); margin-top:4px; }
@@ -1711,6 +1755,7 @@
 .dash-overlay { position: fixed; inset: 0; z-index: 199; }
 
 .sb--collapsed { width: var(--sidebar-w-collapsed); }
+.sb--collapsed .sb-logo-strip { justify-content: center; padding: 18px 12px 14px; }
 .sb-collapse-btn {
   width: 28px; height: 28px; padding: 0;
   border-radius: var(--r4);
@@ -1744,12 +1789,13 @@
   flex-wrap: wrap;
 }
 .d-page-title {
-  font-size: clamp(22px, 2.5vw, 28px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--t1);
+  line-height: 1.25;
 }
-.d-page-desc { font-size: 13.5px; color: var(--t3); margin-top: 4px; }
+.d-page-desc { font-size: 13px; color: var(--t3); margin-top: 4px; }
 .d-page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .d-page-content { display: flex; flex-direction: column; gap: 20px; }
 .d-footer-actions {
@@ -1998,25 +2044,29 @@
 
 /* KPI */
 .d-kpi-link { text-decoration: none; display: block; }
-.d-kpi-card { height: 100%; display: flex; flex-direction: column; gap: 12px; }
-.d-kpi-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.d-kpi-card { height: 100%; display: flex; align-items: center; gap: 10px; }
 .d-kpi-icon {
-  width: 42px; height: 42px;
-  border-radius: var(--r6);
+  width: 32px; height: 32px;
+  border-radius: var(--r5);
   border: 1px solid;
   display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
-.d-kpi-label { font-size: 13px; font-weight: 600; color: var(--t2); }
+.d-kpi-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.d-kpi-skeleton { min-width: 0; flex: 1; }
+.d-kpi-label { font-size: 11.5px; font-weight: 600; color: var(--t3); white-space: nowrap; }
 .d-kpi-value {
-  font-size: 28px; font-weight: 800;
-  letter-spacing: -0.04em;
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--t1);
-  line-height: 1;
+  line-height: 1.2;
 }
 .d-kpi-trend {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 600;
-  padding: 2px 8px; border-radius: var(--rf);
+  font-size: 10.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: var(--rf);
+  margin-left: auto;
+  flex-shrink: 0;
 }
 .d-kpi-trend--up { background: var(--green-bg); color: var(--green); }
 .d-kpi-trend--down { background: var(--red-bg); color: var(--red); }
@@ -2027,21 +2077,33 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
-.d-support-ticket-card {
-  display: block;
+.d-support-ticket-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
   text-align: left;
-  padding: 14px;
+  padding: 11px 14px;
   border: 1px solid var(--b1);
-  border-radius: var(--r7);
+  border-radius: var(--r6);
   background: var(--s0);
-  box-shadow: var(--ss);
-  transition: transform var(--df) var(--eo), box-shadow var(--df) var(--eo), border-color var(--df) var(--eo);
+  transition: border-color var(--df) var(--eo), box-shadow var(--df) var(--eo);
 }
-.d-support-ticket-card:hover { transform: translateY(-4px); box-shadow: var(--sx); border-color: rgba(14,165,233,0.12); }
-.d-support-ticket-card--active { border-color: rgba(232,105,44,0.18); box-shadow: var(--sm); }
-.d-support-ticket-card-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-.d-support-ticket-card-meta { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; color:var(--t3); }
-.d-support-ticket-card-open { margin-left:auto; color:var(--t3); font-weight:600; }
+.d-support-ticket-row:hover { box-shadow: var(--sx); border-color: rgba(232,105,44,0.16); }
+.d-support-ticket-row--active { border-color: rgba(232,105,44,0.28); box-shadow: var(--sx); }
+.d-support-ticket-row-icon { color: var(--or); display: inline-flex; flex-shrink: 0; }
+.d-support-ticket-row-id { font-size: 12px; font-weight: 700; color: var(--t3); flex-shrink: 0; }
+.d-support-ticket-row-subject {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t1);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.d-support-ticket-row-date { font-size: 12px; color: var(--t3); flex-shrink: 0; }
 .d-support-draft-card { border: 1px dashed var(--or); background: var(--s1); }
 .d-support-contact-grid {
   display: grid;

@@ -1,9 +1,12 @@
 "use client";
 
-import { use } from "react";
-import EquipmentDetail from "@/components/dashboard/equipment/EquipmentDetail";
+import PageShell from "@/components/dashboard/layout/PageShell";
+import ComingSoon from "@/components/dashboard/common/ComingSoon";
 
-export default function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  return <EquipmentDetail equipmentId={id} />;
+export default function EquipmentDetailPage() {
+  return (
+    <PageShell>
+      <ComingSoon module="Equipment" />
+    </PageShell>
+  );
 }

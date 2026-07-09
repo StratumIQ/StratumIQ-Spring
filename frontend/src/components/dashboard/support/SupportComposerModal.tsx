@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headset, Paperclip, Trash2, X } from "lucide-react";
+import { Headset, Paperclip, FileImage, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import Button from "@/components/dashboard/ui/Button";
 import { ApiError, dashApi } from "@/lib/api/client";
@@ -25,6 +25,20 @@ export type FormState = {
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
+
+type UploadedAttachment = {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+};
+
+function buildDescriptionWithAttachments(description: string, attachments: UploadedAttachment[]) {
+  if (!attachments.length) return description.trim();
+  const lines = [description.trim(), "", "Attachments:"];
+  attachments.forEach(({ name, url }) => { lines.push(`- ${name}: ${url}`); });
+  return lines.join("\n");
+}
 
 const INITIAL_FORM: FormState = {
   type: "",
@@ -79,6 +93,8 @@ export default function SupportComposerModal({
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const skipNextAutosave = useRef(false);
 
   useEffect(() => {
@@ -96,6 +112,7 @@ export default function SupportComposerModal({
       setDraftRestored(Boolean(draft));
       setErrors({});
       setSubmitting(false);
+      setAttachments([]);
       return;
     }
 
@@ -103,6 +120,7 @@ export default function SupportComposerModal({
     setDraftRestored(false);
     setErrors({});
     setSubmitting(false);
+    setAttachments([]);
   }, [open, initialType, initialPriority, initialSubject, initialDescription]);
 
   useEffect(() => {
@@ -120,6 +138,42 @@ export default function SupportComposerModal({
     skipNextAutosave.current = true;
     setForm(INITIAL_FORM);
     setDraftRestored(false);
+  };
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files?.length) return;
+
+    setUploading(true);
+    try {
+      const uploaded: UploadedAttachment[] = [];
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/api/upload", { method: "POST", body: formData });
+        const payload = await response.json();
+        if (!response.ok || !payload?.url) {
+          throw new Error(payload?.error || "Upload failed");
+        }
+        uploaded.push({
+          id: `${file.name}-${Date.now()}`,
+          name: file.name,
+          url: payload.url,
+          size: file.size,
+        });
+      }
+      setAttachments((current) => [...current, ...uploaded]);
+      toast.success(`${uploaded.length} attachment${uploaded.length > 1 ? "s" : ""} added`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((current) => current.filter((attachment) => attachment.id !== id));
   };
 
   const validate = () => {
@@ -144,7 +198,7 @@ export default function SupportComposerModal({
           type: form.type,
           priority: form.priority,
           subject: form.subject.trim(),
-          description: form.description.trim(),
+          description: buildDescriptionWithAttachments(form.description, attachments),
         },
       });
       clearDraft();
@@ -290,15 +344,47 @@ export default function SupportComposerModal({
                 </div>
               </label>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--b1)", background: "var(--s1)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Paperclip size={14} color="var(--or)" />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>Attachments</div>
-                    <div style={{ fontSize: 12, color: "var(--t3)" }}>Coming soon</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--b1)", background: "var(--s1)" }}>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Paperclip size={14} color="var(--or)" />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>Attachments</div>
+                      <div style={{ fontSize: 12, color: "var(--t3)" }}>PNG, JPEG or WEBP, up to 5 MB each</div>
+                    </div>
                   </div>
-                </div>
-                <span style={{ fontSize: 12, color: "var(--t3)" }}>Disabled for now</span>
+                  <span style={{ fontSize: 12, color: "var(--or)", fontWeight: 700 }}>{uploading ? "Uploading…" : "+ Add files"}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={handleUpload}
+                    disabled={uploading}
+                    style={{ display: "none" }}
+                  />
+                </label>
+
+                {attachments.length > 0 ? (
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {attachments.map((attachment) => (
+                      <div key={attachment.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--b1)", background: "var(--s0)" }}>
+                        <FileImage size={14} color="var(--or)" />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{attachment.name}</div>
+                          <div style={{ fontSize: 11.5, color: "var(--t3)" }}>{(attachment.size / 1024).toFixed(0)} KB</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(attachment.id)}
+                          aria-label={`Remove ${attachment.name}`}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", display: "flex", padding: 4 }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -306,7 +392,7 @@ export default function SupportComposerModal({
               <Button variant="ghost" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} loading={submitting} icon={<Headset size={14} />}>
+              <Button onClick={handleSubmit} loading={submitting || uploading} icon={<Headset size={14} />}>
                 Submit ticket
               </Button>
             </div>

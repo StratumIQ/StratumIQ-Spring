@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Menu, Bell, ChevronDown } from "lucide-react";
+import { Search, Menu, Bell, ChevronDown, Headset, Home } from "lucide-react";
 import { dashboardApi, normalizeAlerts } from "@/lib/api/dashboard";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";
@@ -76,6 +76,10 @@ export default function TopBar({ user, onMenuClick }: Props) {
         {unread > 0 ? `${unread} Alert${unread !== 1 ? "s" : ""}` : "All Clear"}
       </div>
 
+      <Link href="/dashboard" className="topbar-icon-btn" aria-label="Dashboard" title="Dashboard">
+        <Home size={18} />
+      </Link>
+
       <div ref={alertRef} className="topbar-dropdown-wrap">
         <button
           className="topbar-icon-btn"
@@ -85,6 +89,7 @@ export default function TopBar({ user, onMenuClick }: Props) {
           }}
           aria-label="Notifications"
           aria-expanded={showAlerts}
+          title="Notifications"
         >
           <Bell size={18} />
           {unread > 0 && (
@@ -134,6 +139,10 @@ export default function TopBar({ user, onMenuClick }: Props) {
         )}
       </div>
 
+      <Link href="/dashboard/support" className="topbar-icon-btn" aria-label="Support" title="Support">
+        <Headset size={18} />
+      </Link>
+
       <div ref={userRef} className="topbar-dropdown-wrap">
         <button
           className="topbar-user-btn"
@@ -143,6 +152,7 @@ export default function TopBar({ user, onMenuClick }: Props) {
           }}
           aria-expanded={showUser}
           aria-label="User menu"
+          title="Account"
         >
           <div className="topbar-avatar">{initials}</div>
           <div className="topbar-user-info">

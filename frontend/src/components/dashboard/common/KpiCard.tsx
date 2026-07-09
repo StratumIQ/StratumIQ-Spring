@@ -40,29 +40,27 @@ export default function KpiCard({
   const TrendIcon = TREND_ICON[trend];
 
   const content = (
-    <GlassCard hover={!!href} padding="md" className="d-kpi-card">
-      <div className="d-kpi-card-top">
-        <div className="d-kpi-icon" style={{ color, background: `${color}14`, borderColor: `${color}28` }}>
-          {icon}
-        </div>
-        {trendValue ? (
-          <span className={cn("d-kpi-trend", `d-kpi-trend--${trend}`)}>
-            <TrendIcon size={11} />
-            {trendValue}
-          </span>
-        ) : null}
+    <GlassCard hover={!!href} padding="sm" className="d-kpi-card">
+      <div className="d-kpi-icon" style={{ color, background: `${color}14`, borderColor: `${color}28` }}>
+        {icon}
       </div>
       {loading ? (
         <div className="d-kpi-skeleton">
-          <div className="d-skeleton d-skeleton--md" style={{ height: 28, width: "50%" }} />
-          <div className="d-skeleton d-skeleton--sm" style={{ height: 13, width: "70%", marginTop: 8 }} />
+          <div className="d-skeleton d-skeleton--sm" style={{ height: 11, width: "60%" }} />
+          <div className="d-skeleton d-skeleton--md" style={{ height: 18, width: "40%", marginTop: 6 }} />
         </div>
       ) : (
-        <>
+        <div className="d-kpi-body">
           <div className="d-kpi-label">{label}</div>
           <div className="d-kpi-value">{value}</div>
-        </>
+        </div>
       )}
+      {trendValue ? (
+        <span className={cn("d-kpi-trend", `d-kpi-trend--${trend}`)}>
+          <TrendIcon size={10} />
+          {trendValue}
+        </span>
+      ) : null}
     </GlassCard>
   );
 
