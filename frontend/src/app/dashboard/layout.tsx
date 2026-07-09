@@ -127,43 +127,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <UserCtx.Provider value={user}>
         <SidebarCtx.Provider value={{ collapsed, toggle: toggleCollapse }}>
           <div className={`dash-root${collapsed ? " dash-root--collapsed" : ""}`}>
-            <AnimatePresence>
-              {sidebarOpen && (
-                <motion.div
-                  className="d-modal-overlay dash-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setSidebarOpen(false)}
-                  aria-hidden
-                />
-              )}
-            </AnimatePresence>
+            <TopBar
+              user={user}
+              onMenuClick={() => setSidebarOpen((o) => !o)}
+            />
 
-            <div className={`dash-sidebar${sidebarOpen ? " open" : ""}`}>
-              <Sidebar
-                collapsed={collapsed && !sidebarOpen}
-                onToggleCollapse={toggleCollapse}
-                onNavigate={collapseSidebar}
-                onClose={sidebarOpen ? () => setSidebarOpen(false) : undefined}
-              />
-            </div>
-
-            <div className="dash-main">
-              <TopBar user={user} onMenuClick={() => setSidebarOpen((o) => !o)} />
-              <main>
-                <AnimatePresence mode="wait">
+            <div className="dash-body">
+              <AnimatePresence>
+                {sidebarOpen && (
                   <motion.div
-                    key={pathname}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    {children}
-                  </motion.div>
-                </AnimatePresence>
-              </main>
+                    className="d-modal-overlay dash-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setSidebarOpen(false)}
+                    aria-hidden
+                  />
+                )}
+              </AnimatePresence>
+
+              <div className={`dash-sidebar${sidebarOpen ? " open" : ""}`}>
+                <Sidebar
+                  collapsed={collapsed && !sidebarOpen}
+                  onToggleCollapse={toggleCollapse}
+                  onNavigate={collapseSidebar}
+                  onClose={sidebarOpen ? () => setSidebarOpen(false) : undefined}
+                />
+              </div>
+
+              <div className="dash-main">
+                <main>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={pathname}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      {children}
+                    </motion.div>
+                  </AnimatePresence>
+                </main>
+              </div>
             </div>
           </div>
         </SidebarCtx.Provider>

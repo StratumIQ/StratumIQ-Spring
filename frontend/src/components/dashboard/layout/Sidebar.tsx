@@ -13,7 +13,6 @@ import {
   SlidersHorizontal,
   BarChart3,
   LogOut,
-  X,
   Menu,
   ChevronRight,
   Cpu,
@@ -102,50 +101,20 @@ export default function Sidebar({ collapsed, onToggleCollapse, onNavigate, onClo
 
   return (
     <aside className={cn("sb", collapsed && "sb--collapsed")} aria-label="Dashboard navigation">
-      <div className="sb-logo-strip">
-        {!collapsed && (
-          <Link href="/dashboard" className="sb-logo-link" onClick={onClose}>
-            <div className="sb-logo-icon">
-              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden>
-                <path
-                  d="M14 5C14 3.34 12.66 2 11 2H7C4.79 2 4.79 7 7 7H11C13.21 7 13.21 12 11 12H6"
-                  stroke="white"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <div className="sb-logo-text">
-              <b>
-                Stratum<span>IQ</span>
-              </b>
-            </div>
-          </Link>
-        )}
-
-        <div className="sb-logo-actions">
-          {onClose && (
-            <button className="sb-close-btn" onClick={onClose} aria-label="Close navigation">
-              <X size={14} />
-            </button>
-          )}
-          {!onClose && (
-            <button
-              className="sb-collapse-btn"
-              onClick={onToggleCollapse}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <Menu size={16} />
-            </button>
-          )}
-        </div>
+      <div className={cn("sb-toggle-row", collapsed && "sb-toggle-row--collapsed")}>
+        <button
+          className="sb-close-btn"
+          onClick={onClose ?? onToggleCollapse}
+          aria-label={onClose ? "Close navigation" : collapsed ? "Expand menu" : "Collapse menu"}
+          title={onClose ? undefined : collapsed ? "Expand menu" : "Collapse menu"}
+        >
+          <Menu size={16} />
+        </button>
+        {!collapsed && <span className="sb-toggle-label">Workspace</span>}
       </div>
 
       <nav className="sb-nav">
-        <div className="sb-group">
-          {!collapsed && <div className="sb-group-label">Workspace</div>}
-          {NAV_ITEMS.map(renderItem)}
-        </div>
+        <div className="sb-group">{NAV_ITEMS.map(renderItem)}</div>
       </nav>
 
       <div className="sb-bottom">

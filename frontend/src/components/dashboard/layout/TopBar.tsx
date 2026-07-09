@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Menu, Bell, ChevronDown, Headset, Home } from "lucide-react";
+import { Search, Menu, Bell, ChevronDown, Headset, LogOut } from "lucide-react";
 import { dashboardApi, normalizeAlerts } from "@/lib/api/dashboard";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";
@@ -58,27 +58,49 @@ export default function TopBar({ user, onMenuClick }: Props) {
         <Menu size={18} />
       </button>
 
-      <div className="topbar-search-wrap">
-        <span className="topbar-search-icon">
-          <Search size={14} />
+      <Link href="/dashboard" className="topbar-logo" aria-label="StratumIQ home">
+        <div className="topbar-logo-icon">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden>
+            <path
+              d="M14 5C14 3.34 12.66 2 11 2H7C4.79 2 4.79 7 7 7H11C13.21 7 13.21 12 11 12H6"
+              stroke="white"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+        <span className="topbar-logo-text">
+          Stratum<span>IQ</span>
         </span>
-        <input
-          className="topbar-search"
-          placeholder="Search equipment, fleet, or alerts…"
-          aria-label="Search dashboard"
-        />
+      </Link>
+
+      <div className="topbar-search-outer">
+        <div className="topbar-search-wrap">
+          <span className="topbar-search-icon">
+            <Search size={14} />
+          </span>
+          <input
+            className="topbar-search"
+            placeholder="Search equipment, fleet, or alerts…"
+            aria-label="Search dashboard"
+          />
+        </div>
       </div>
 
-      <div className="topbar-spacer" />
-
+      <div className="topbar-actions">
       <div className={`topbar-status ${unread > 0 ? "warn" : "ok"}`}>
         <span className="topbar-status-dot" />
         {unread > 0 ? `${unread} Alert${unread !== 1 ? "s" : ""}` : "All Clear"}
       </div>
 
-      <Link href="/dashboard" className="topbar-icon-btn" aria-label="Dashboard" title="Dashboard">
-        <Home size={18} />
-      </Link>
+      <button
+        className="topbar-icon-btn"
+        onClick={handleSignOut}
+        aria-label="Sign out"
+        title="Sign out"
+      >
+        <LogOut size={18} />
+      </button>
 
       <div ref={alertRef} className="topbar-dropdown-wrap">
         <button
@@ -185,6 +207,7 @@ export default function TopBar({ user, onMenuClick }: Props) {
             </button>
           </div>
         )}
+      </div>
       </div>
     </header>
   );
