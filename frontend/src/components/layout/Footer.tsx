@@ -19,7 +19,7 @@ export default function Footer() {
 
   return (
     <footer style={{ background: "#0B0F19", borderTop: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "52px clamp(16px,4vw,48px) 0" }}>
+      <div className="w-full px-6 sm:px-10 lg:px-16" style={{ paddingTop: 52 }}>
 
         {/* Top grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "clamp(24px,4vw,48px)", marginBottom: 48 }}>

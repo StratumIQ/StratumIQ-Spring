@@ -215,6 +215,7 @@
   z-index:     350;
   width:       var(--sidebar-w);
   flex-shrink: 0;
+  transition:  width var(--ds) var(--eo);
 }
 
 .dash-main {
@@ -247,6 +248,7 @@
   background:   var(--navy);
   display:      flex;
   flex-direction: column;
+  transition:   width var(--ds) var(--eo);
   overflow-y:   auto;
   overflow-x:   hidden;
   border-right: 1px solid rgba(255,255,255,.05);

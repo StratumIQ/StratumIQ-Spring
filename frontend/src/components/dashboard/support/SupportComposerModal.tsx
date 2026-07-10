@@ -6,6 +6,7 @@ import { Headset, Paperclip, FileImage, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import Button from "@/components/dashboard/ui/Button";
 import { ApiError, dashApi } from "@/lib/api/client";
+import { uploadImage } from "@/lib/imageUtils";
 
 type Props = {
   open: boolean;
@@ -148,17 +149,11 @@ export default function SupportComposerModal({
     try {
       const uploaded: UploadedAttachment[] = [];
       for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = await fetch("/api/upload", { method: "POST", body: formData });
-        const payload = await response.json();
-        if (!response.ok || !payload?.url) {
-          throw new Error(payload?.error || "Upload failed");
-        }
+        const url = await uploadImage(file, "fleet");
         uploaded.push({
           id: `${file.name}-${Date.now()}`,
           name: file.name,
-          url: payload.url,
+          url,
           size: file.size,
         });
       }

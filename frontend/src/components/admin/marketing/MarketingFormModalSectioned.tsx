@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { X, AlertCircle, Settings, Images, Clock, Search, Eye as EyeIcon } from "lucide-react";
 import MarketingImageField from "./MarketingImageField";
-import { MARKETING } from "@/lib/constants";
+import { MARKETING, resolveAssetUrl } from "@/lib/constants";
 import type { MarketingFormData, MarketingItem, MarketingStatus } from "@/lib/api/marketing";
 
 type Props = {
   title:    string;
   initial?: MarketingItem;
-  onSave:   (data: MarketingFormData) => Promise<void>;
+  onSave:   (data: MarketingFormData, published: boolean) => Promise<void>;
   onClose:  () => void;
 };
 
@@ -116,7 +116,7 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (publish: boolean) => {
     setError(null);
 
     if (!validateForm()) {
@@ -136,9 +136,10 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
         ctaText:  form.ctaText.trim(),
         ctaUrl:   form.ctaUrl.trim(),
         tags:     form.tags.trim(),
+        status:   publish ? "PUBLISHED" : form.status,
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : "",
         endsAt:   form.endsAt ? new Date(form.endsAt).toISOString() : "",
-      });
+      }, publish);
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : "An error occurred while saving";
@@ -359,11 +360,11 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
             <>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                 <Field label="Priority" error={fieldErrors.priority} required dataField="priority">
-                  <input 
-                    className="admin-input" 
-                    type="number" 
-                    min={0} 
-                    max={100} 
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min={0}
+                    max={100}
                     value={form.priority}
                     onChange={(e) => set("priority", Number(e.target.value || 0))}
                     disabled={saving}
@@ -371,26 +372,41 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
                   <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>0-100 (higher = more visibility)</div>
                 </Field>
                 <Field label="Publish Date" error={fieldErrors.startsAt} dataField="startsAt">
-                  <input 
-                    className="admin-input" 
-                    type="datetime-local" 
+                  <input
+                    className="admin-input"
+                    type="datetime-local"
                     value={form.startsAt}
                     onChange={(e) => set("startsAt", e.target.value)}
                     disabled={saving}
                   />
                 </Field>
                 <Field label="Expiry Date" error={fieldErrors.endsAt} dataField="endsAt">
-                  <input 
-                    className="admin-input" 
-                    type="datetime-local" 
+                  <input
+                    className="admin-input"
+                    type="datetime-local"
                     value={form.endsAt}
                     onChange={(e) => set("endsAt", e.target.value)}
                     disabled={saving}
                   />
                 </Field>
               </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-ghost"
+                  disabled={saving || form.status === "DRAFT"}
+                  onClick={() => set("status", "DRAFT")}
+                >
+                  Remove from dashboard
+                </button>
+                <span style={{ fontSize: 12, color: "#64748b" }}>
+                  Currently: <strong style={{ color: form.status === "PUBLISHED" ? "#16a34a" : "#64748b" }}>{form.status}</strong>
+                </span>
+              </div>
+
               <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.3)", fontSize: 12, color: "#93c5fd" }}>
-                ⏰ Leave publish date empty to appear immediately. Items expire on the end date (optional).
+                ⏰ Leave publish date empty to appear immediately once published. Items expire on the end date.
               </div>
             </>
           )}
@@ -442,12 +458,35 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
           {activeTab === "preview" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ padding: "16px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 12, textTransform: "uppercase" }}>Card Preview</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>Card Preview</div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 99,
+                    background: form.status === "PUBLISHED" ? "rgba(22,163,74,0.14)" : "rgba(100,116,139,0.14)",
+                    color: form.status === "PUBLISHED" ? "#16a34a" : "#64748b",
+                  }}>
+                    {form.status}
+                  </span>
+                </div>
                 <div style={{ background: "#1a1f2e", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{ width: "100%", height: 180, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
-                    {form.imageUrl ? "Banner Preview" : "No Banner"}
+                  <div style={{ position: "relative", width: "100%", height: 180, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+                    {form.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveAssetUrl(form.imageUrl) ?? form.imageUrl}
+                        alt={form.title || "Banner preview"}
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      "No banner uploaded"
+                    )}
                   </div>
                   <div style={{ padding: "16px" }}>
+                    {form.isPinned && (
+                      <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, color: "#E8692C", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        📌 Pinned
+                      </span>
+                    )}
                     <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{form.title || "Title"}</div>
                     <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12, lineHeight: 1.5 }}>
                       {form.subtitle || "Subtitle preview"}
@@ -466,6 +505,15 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
                 <div style={{ fontSize: 13, color: "#e2e8f0", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                   {form.body || form.richContent || "No content yet"}
                 </div>
+                {form.tags && (
+                  <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {form.tags.split(",").map((t) => t.trim()).filter(Boolean).map((tag) => (
+                      <span key={tag} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 99, background: "rgba(232,105,44,0.12)", color: "#E8692C" }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -473,21 +521,29 @@ export default function MarketingFormModal({ title, initial, onSave, onClose }: 
 
         {/* Footer */}
         <div style={{ display: "flex", gap: 10, marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(15, 23, 42, 0.08)", position: "sticky", bottom: 0, background: "#fff" }}>
-          <button 
-            className="admin-btn admin-btn-ghost" 
-            style={{ flex: 1 }} 
-            onClick={onClose} 
+          <button
+            className="admin-btn admin-btn-ghost"
+            style={{ flex: 1 }}
+            onClick={onClose}
             disabled={saving}
           >
             Cancel
           </button>
-          <button 
-            className="admin-btn admin-btn-primary" 
-            style={{ flex: 2 }}
-            onClick={handleSave} 
+          <button
+            className="admin-btn admin-btn-ghost"
+            style={{ flex: 1 }}
+            onClick={() => handleSave(false)}
             disabled={saving}
           >
             {saving ? "Saving…" : "Save News"}
+          </button>
+          <button
+            className="admin-btn admin-btn-primary"
+            style={{ flex: 1 }}
+            onClick={() => handleSave(true)}
+            disabled={saving}
+          >
+            {saving ? "Publishing…" : "Publish"}
           </button>
         </div>
       </div>

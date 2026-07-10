@@ -25,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [hovering, setHovering] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("dash-sidebar-collapsed");
@@ -126,7 +127,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardToaster />
       <UserCtx.Provider value={user}>
         <SidebarCtx.Provider value={{ collapsed, toggle: toggleCollapse }}>
-          <div className={`dash-root${collapsed ? " dash-root--collapsed" : ""}`}>
+          <div className={`dash-root${collapsed && !hovering ? " dash-root--collapsed" : ""}`}>
             <TopBar
               user={user}
               onMenuClick={() => setSidebarOpen((o) => !o)}
@@ -146,9 +147,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </AnimatePresence>
 
-              <div className={`dash-sidebar${sidebarOpen ? " open" : ""}`}>
+              <div
+                className={`dash-sidebar${sidebarOpen ? " open" : ""}`}
+                onMouseEnter={() => setHovering(true)}
+                onMouseLeave={() => setHovering(false)}
+              >
                 <Sidebar
-                  collapsed={collapsed && !sidebarOpen}
+                  collapsed={collapsed && !sidebarOpen && !hovering}
                   onToggleCollapse={toggleCollapse}
                   onNavigate={collapseSidebar}
                   onClose={sidebarOpen ? () => setSidebarOpen(false) : undefined}

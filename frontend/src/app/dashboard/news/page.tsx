@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pin, Newspaper, Eye, FileText } from "lucide-react";
@@ -73,7 +72,13 @@ export default function NewsPage() {
               >
                 {banner && (
                   <div style={{ position: "relative", height: 180 }}>
-                    <Image src={banner} alt={item.title} fill style={{ objectFit: "cover" }} loading="lazy" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={banner}
+                      alt={item.title}
+                      loading="lazy"
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                    />
                     <div style={{
                       position: "absolute", inset: 0,
                       background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6))",

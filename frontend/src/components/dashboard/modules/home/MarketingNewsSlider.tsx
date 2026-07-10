@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Newspaper } from "lucide-react";
@@ -29,7 +28,12 @@ function NewsModal({ item, onClose }: { item: DashboardMarketingItem; onClose: (
       >
         {banner && (
           <div style={{ position: "relative", height: 240, width: "100%" }}>
-            <Image src={banner} alt={item.title} fill style={{ objectFit: "cover" }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={banner}
+              alt={item.title}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
             <div style={{
               position: "absolute", inset: 0,
               background: "linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.7))",
@@ -246,7 +250,13 @@ export default function MarketingNewsSlider() {
             >
               {hasBanner && (
                 <>
-                  <Image src={banner} alt="" fill style={{ objectFit: "cover" }} loading="lazy" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={banner}
+                    alt=""
+                    loading="lazy"
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                  />
                   <div style={{
                     position: "absolute", inset: 0,
                     background: "linear-gradient(90deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.52) 55%, rgba(0,0,0,0.18) 100%)",

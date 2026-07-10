@@ -80,6 +80,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [hovering, setHovering] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,20 +126,25 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
 
   return (
     <QueryProvider>
-      <div className="admin-root">
+      <div className={`admin-root${collapsed && !hovering ? " admin-root--collapsed" : ""}`}>
         <Toaster position="top-right" richColors closeButton />
-        {sidebarOpen && (
-          <div className="admin-overlay" onClick={() => setSidebarOpen(false)} />
-        )}
-        <AdminSidebar
-          collapsed={collapsed && !sidebarOpen}
-          onToggle={() => setCollapsed((c) => !c)}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
-        <div className="admin-main">
-          <AdminTopBar user={user} onMenuClick={() => setSidebarOpen(true)} />
-          <main className="admin-content">{children}</main>
+        <AdminTopBar user={user} onMenuClick={() => setSidebarOpen((o) => !o)} />
+
+        <div className="admin-body">
+          {sidebarOpen && (
+            <div className="admin-overlay" onClick={() => setSidebarOpen(false)} />
+          )}
+          <AdminSidebar
+            collapsed={collapsed && !sidebarOpen && !hovering}
+            onToggle={() => setCollapsed((c) => !c)}
+            open={sidebarOpen}
+            onClose={sidebarOpen ? () => setSidebarOpen(false) : undefined}
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
+          />
+          <div className="admin-main">
+            <main className="admin-content">{children}</main>
+          </div>
         </div>
       </div>
     </QueryProvider>

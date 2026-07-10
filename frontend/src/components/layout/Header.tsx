@@ -54,12 +54,12 @@ export default function Header() {
         }}
       >
         <Container>
-          <div style={{ height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ height: 76, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
 
             {/* Logo */}
             <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-icon.png" alt="Stratum IQ" style={{ height: 88, width: 130 }} />
+              <img src="/logo-icon.png" alt="Stratum IQ" style={{ height: 104, width: 154 }} />
             </Link>
 
             {/* Desktop Nav */}
@@ -76,7 +76,7 @@ export default function Header() {
                         border:         "none",
                         cursor:         "pointer",
                         padding:        "4px 0",
-                        fontSize:       14,
+                        fontSize:       15.5,
                         fontWeight:     600,
                         letterSpacing:  "0.01em",
                         color:          isActive ? "#fff" : "rgba(255,255,255,0.55)",
@@ -110,10 +110,10 @@ export default function Header() {
               <Link href="/auth?mode=login" style={{
                 display:        "inline-flex",
                 alignItems:     "center",
-                height:         36,
-                padding:        "0 18px",
+                height:         40,
+                padding:        "0 20px",
                 borderRadius:   8,
-                fontSize:       13,
+                fontSize:       14,
                 fontWeight:     600,
                 textDecoration: "none",
                 color:          "rgba(255,255,255,0.75)",
@@ -137,10 +137,10 @@ export default function Header() {
               <Link href="/auth?mode=register" style={{
                 display:        "inline-flex",
                 alignItems:     "center",
-                height:         36,
-                padding:        "0 18px",
+                height:         40,
+                padding:        "0 20px",
                 borderRadius:   8,
-                fontSize:       13,
+                fontSize:       14,
                 fontWeight:     600,
                 textDecoration: "none",
                 color:          "#fff",
