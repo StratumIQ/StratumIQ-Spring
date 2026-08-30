@@ -503,8 +503,10 @@
 .admin-btn {
   display:     inline-flex;
   align-items: center;
+  justify-content: center;
   gap:         7px;
   padding:     8px 16px;
+  height:      36px;
   border-radius: var(--a-r5);
   font-size:   13px;
   font-weight: 600;
@@ -512,23 +514,43 @@
   cursor:      pointer;
   font-family: inherit;
   transition:  all var(--a-db) var(--a-eo);
+  outline:     none;
+  white-space: nowrap;
+}
+.admin-btn:disabled {
+  opacity:    0.5;
+  cursor:     not-allowed;
+  pointer-events: none;
 }
 .admin-btn-primary {
   background: var(--ap);
   color:      white;
-  box-shadow: none;
+  box-shadow: 0 2px 6px rgba(232,105,44,.22);
 }
-.admin-btn-primary:hover {
+.admin-btn-primary:hover:not(:disabled) {
   background: var(--ap-h);
   transform:  translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232,105,44,.30);
+}
+.admin-btn-primary:active:not(:disabled) {
+  transform:  translateY(0);
+  box-shadow: 0 1px 3px rgba(232,105,44,.20);
 }
 .admin-btn-ghost {
-  background: var(--a-s1);
+  background: transparent;
   color:      var(--a-t2);
   border:     1px solid var(--a-b1);
   box-shadow: none;
 }
-.admin-btn-ghost:hover { background: var(--a-s2); border-color: var(--a-b1); }
+.admin-btn-ghost:hover:not(:disabled) {
+  background: var(--a-s2);
+  border-color: var(--a-b1);
+  transform:  translateY(-1px);
+}
+.admin-btn-ghost:active:not(:disabled) {
+  transform:  translateY(0);
+  background: var(--a-s1);
+}
 
 /* ═══════════════════════════════════════════════════
    TABLE

@@ -18,6 +18,7 @@ type Props = {
   hint?: string;
   disabled?: boolean;
   className?: string;
+  folder?: "fleet" | "marketing" | "parts";
 };
 
 export default function ImageUpload({
@@ -27,6 +28,7 @@ export default function ImageUpload({
   hint = "Drag and drop or click to upload. JPG, PNG, or WebP up to 5 MB.",
   disabled,
   className,
+  folder = "fleet",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -67,7 +69,7 @@ export default function ImageUpload({
         const uploadHeaders: Record<string, string> = {};
         if (token) uploadHeaders.Authorization = `Bearer ${token}`;
 
-        const res = await fetch(`${API_URL}/upload`, {
+        const res = await fetch(`${API_URL}/upload?folder=${folder}`, {
           method: "POST",
           credentials: "include",
           headers: uploadHeaders,
@@ -92,7 +94,7 @@ export default function ImageUpload({
         setTimeout(() => setProgress(0), 400);
       }
     },
-    [onChange],
+    [onChange, folder],
   );
 
   const onDrop = (e: React.DragEvent) => {

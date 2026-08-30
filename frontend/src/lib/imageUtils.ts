@@ -90,7 +90,7 @@ export async function cropAndCompress(
   return new File([blob], name, { type: "image/jpeg" });
 }
 
-export async function uploadMarketingImage(file: File): Promise<string> {
+export async function uploadImage(file: File, folder: "fleet" | "marketing" | "parts" = "fleet"): Promise<string> {
   const { API_URL } = await import("@/lib/constants");
   const { getAccessToken } = await import("@/lib/auth/token");
 
@@ -101,7 +101,7 @@ export async function uploadMarketingImage(file: File): Promise<string> {
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}/upload?folder=marketing`, {
+  const res = await fetch(`${API_URL}/upload?folder=${folder}`, {
     method: "POST",
     credentials: "include",
     headers,
@@ -113,4 +113,8 @@ export async function uploadMarketingImage(file: File): Promise<string> {
     throw new Error(data.error ?? "Upload failed");
   }
   return data.url;
+}
+
+export async function uploadMarketingImage(file: File): Promise<string> {
+  return uploadImage(file, "marketing");
 }

@@ -14,6 +14,7 @@ import {
   X,
   Building2,
   Megaphone,
+  Package,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";
@@ -24,6 +25,7 @@ const NAV = [
   { label: "Fleet", href: "/dashboard-admin/fleet", icon: Truck },
   { label: "Activity", href: "/dashboard-admin/activity", icon: Activity },
   {label: "Marketing",href: "/dashboard-admin/marketing",icon: Megaphone},
+  { label: "Parts", href: "/dashboard-admin/parts", icon: Package },
   { label: "Support", href: "/dashboard-admin/support", icon: Headphones },
 ];
 
