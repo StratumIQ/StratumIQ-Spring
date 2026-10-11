@@ -42,7 +42,7 @@ public class AuthController {
     // POST /api/auth/register
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
-        logger.info("Register request for email: {}", req.email());
+        logger.info("Registration request received");
         return ResponseEntity.status(201).body(authService.register(req));
     }
 
@@ -85,23 +85,17 @@ public class AuthController {
             @Valid @RequestBody LoginRequest req,
             HttpServletResponse response) {
 
-        try {
-            logger.info("Processing login request for: {}", req.email());
-            var tokens = authService.login(req);
+        logger.info("Processing login request");
+        var tokens = authService.login(req);
 
-            setRefreshCookie(response, tokens.get("refreshToken"));
-            setAccessCookie(response, tokens.get("accessToken"));
+        setRefreshCookie(response, tokens.get("refreshToken"));
+        setAccessCookie(response, tokens.get("accessToken"));
 
-            return ResponseEntity.ok(Map.of(
-                "message", "Login successful.",
-                "accessToken", tokens.get("accessToken"),
-                "refreshToken", tokens.get("refreshToken")
-            ));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
+        return ResponseEntity.ok(Map.of(
+            "message", "Login successful.",
+            "accessToken", tokens.get("accessToken"),
+            "refreshToken", tokens.get("refreshToken")
+        ));
     }
 
     // GET /api/auth/refresh — reads httpOnly cookie (same-origin clients)

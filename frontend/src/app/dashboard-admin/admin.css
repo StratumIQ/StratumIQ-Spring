@@ -6,8 +6,6 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 /* ═══════════════════════════════════════════════════
    TOKENS
 ═══════════════════════════════════════════════════ */
@@ -21,7 +19,7 @@
   --ap-40:    rgba(232,105,44,.40);
 
   /* Surfaces */
-  --a-bg:     #F4F5F7;
+  --a-bg:     #F6F3F0;
   --a-s0:     #FFFFFF;
   --a-s1:     #FAFAFA;
   --a-s2:     #F0F1F3;
@@ -504,11 +502,11 @@
   display:     inline-flex;
   align-items: center;
   justify-content: center;
-  gap:         7px;
-  padding:     8px 16px;
-  height:      36px;
+  gap:         8px;
+  padding:     0 16px;
+  height:      40px;
   border-radius: var(--a-r5);
-  font-size:   13px;
+  font-size:   13.5px;
   font-weight: 600;
   border:      none;
   cursor:      pointer;
@@ -516,6 +514,10 @@
   transition:  all var(--a-db) var(--a-eo);
   outline:     none;
   white-space: nowrap;
+}
+.admin-btn:focus-visible {
+  outline: 2px solid var(--ap);
+  outline-offset: 2px;
 }
 .admin-btn:disabled {
   opacity:    0.5;
@@ -975,6 +977,16 @@
 /* ═══════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════ */
+.admin-menu-btn { display: none; }
+.admin-sidebar .admin-btn-ghost {
+  color: rgba(255,255,255,.78);
+  border-color: rgba(255,255,255,.12);
+}
+.admin-sidebar .admin-btn-ghost:hover:not(:disabled) {
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+
 @media (max-width: 768px) {
   .admin-sidebar {
     position:  fixed;
@@ -983,9 +995,12 @@
     transform: translateX(-100%);
     transition: transform .25s var(--a-eo);
     height:    100vh;
+    width:     min(260px, 86vw);
   }
   .admin-sidebar.open { transform: translateX(0); }
   .admin-content      { padding: 16px; }
   .admin-kpi-grid     { grid-template-columns: 1fr 1fr; }
   .admin-topbar       { padding: 0 16px; }
+  .admin-menu-btn     { display: inline-flex !important; }
+  .admin-btn          { min-height: 40px; }
 }

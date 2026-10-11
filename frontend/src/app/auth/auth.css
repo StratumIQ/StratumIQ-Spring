@@ -10,9 +10,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   min-height: 100vh;
-  background: #F8F9FB;
+  background: var(--page-bg, #F6F3F0);
   font-family: var(--font-body), system-ui, sans-serif;
-  color: #111111;
+  color: var(--text-primary, #0A0A0B);
 }
 
 /* ─── Brand / left panel ─────────────────────────────────── */
@@ -107,8 +107,8 @@
   font-family: var(--font-heading), sans-serif;
   color: #000000;
 }
-h2{
-  color: #000000;
+.auth-card h2 {
+  color: var(--text-primary, #0A0A0B);
 }
 
 .auth-hero h1 span { color: #E8692C; }
@@ -310,6 +310,7 @@ h2{
   box-shadow: 0 4px 14px rgba(232, 105, 44, 0.22);
 }
 .auth-btn:hover:not(:disabled) { background: #D45A1F; transform: translateY(-1px); }
+.auth-btn:focus-visible        { outline: 2px solid #E8692C; outline-offset: 2px; }
 .auth-btn:disabled             { opacity: 0.65; cursor: not-allowed; transform: none; }
 .auth-btn--success             { background: #16A34A; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.22); }
 

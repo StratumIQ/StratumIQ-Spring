@@ -304,7 +304,7 @@ function CertificationsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved
         subtitle="Standards, regulatory approvals and certificates"
         action={
           <button onClick={() => { setAdding(a => !a); setErrors({}); }}
-            className="btn-secondary" style={{ height: 30, padding: "0 12px", fontSize: 12 }}>
+            className="btn-secondary">
             {adding ? "Cancel" : "+ Add Cert"}
           </button>
         }
@@ -344,8 +344,8 @@ function CertificationsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => { setAdding(false); setErrors({}); setForm({ standard_name: "", certification_body: "", certificate_number: "", valid_from: "", valid_until: "", region: "", document_url: "" }); }}
-                className="btn-secondary" style={{ height: 32, padding: "0 14px", fontSize: 12 }}>Cancel</button>
-              <button onClick={handleAdd} className="btn-primary" style={{ height: 32, padding: "0 14px", fontSize: 12 }} disabled={saving}>
+                className="btn-secondary">Cancel</button>
+              <button onClick={handleAdd} className="btn-primary" disabled={saving}>
                 {saving ? "Adding…" : "Add Certification"}
               </button>
             </div>

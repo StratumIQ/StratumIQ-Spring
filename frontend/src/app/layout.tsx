@@ -8,6 +8,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "@/styles/marketing.css";
 import ConditionalShell from "@/components/layout/Conditionalshell";
 
 /* ── Font definitions ─────────────────────────────────────── */

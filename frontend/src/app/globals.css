@@ -9,41 +9,83 @@
 
 /* ── CSS Custom Properties ─────────────────────────────────── */
 :root {
-  /* Brand */
-  --orange:       #E8692C;
-  --orange-hover: #D45A1F;
-  --orange-dim:   rgba(232, 105, 44, 0.10);
-  --orange-glow:  rgba(232, 105, 44, 0.28);
-  --navy:         #111827;
-  --navy-hover:   #1F2937;
+  /* Brand — keep #E8692C as the recognizable primary */
+  --orange:         #E8692C;
+  --orange-hover:   #D45A1F;
+  --orange-active:  #B84A15;
+  --orange-muted:   rgba(232, 105, 44, 0.10);
+  --orange-border:  rgba(232, 105, 44, 0.28);
+  --orange-dim:     rgba(232, 105, 44, 0.10);
+  --orange-glow:    rgba(232, 105, 44, 0.22);
+  --navy:           #111827;
+  --navy-hover:     #1F2937;
 
-  /* Fonts — set by next/font/google on <html> */
+  /* Semantic surfaces */
+  --page-bg:        #F6F3F0;
+  --surface:        #FFFFFF;
+  --surface-2:      #F3EEEA;
+  --surface-3:      #E8E2DC;
+  --text-primary:   #0A0A0B;
+  --text-secondary: #3F3F46;
+  --text-muted:     #71717A;
+  --border:         rgba(24, 16, 12, 0.10);
+  --border-subtle:  rgba(24, 16, 12, 0.06);
+  --input-bg:       #FFFFFF;
+  --focus-ring:     0 0 0 3px rgba(232, 105, 44, 0.18);
+
+  --success:        #15803D;
+  --success-bg:     rgba(22, 163, 74, 0.10);
+  --warning:        #B45309;
+  --warning-bg:     rgba(217, 119, 6, 0.10);
+  --danger:         #B91C1C;
+  --danger-bg:      rgba(220, 38, 38, 0.10);
+  --info:           #1D4ED8;
+  --info-bg:        rgba(37, 99, 235, 0.10);
+  --disabled:       #A1A1AA;
+
+  /* Fonts — set by next/font on <html> */
   --font-mono:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: var(--font-body);
 
-  /* Dashboard surface */
-  --d-bg:       #F5F0EE;
-  --d-surface:  #FFFFFF;
-  --d-surface2: #EDE7E3;
+  /* Type scale */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 14px;
+  --text-md:   15px;
+  --text-lg:   17px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  30px;
 
-  --d-text:   #111827;
-  --d-text2:  #374151;
-  --d-text3:  #9CA3AF;
-
-  --d-border:  rgba(0, 0, 0, 0.07);
-  --d-border2: rgba(0, 0, 0, 0.04);
-
-  --d-shadow-xs: 0 1px 3px rgba(0,0,0,0.04);
-  --d-shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-  --d-shadow-md: 0 4px 20px rgba(0,0,0,0.08);
-  --d-shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
-
-  --d-red:   #DC2626;
-  --d-amber: #D97706;
-  --d-green: #16A34A;
-  --d-blue:  #2563EB;
-
+  /* Spacing / radius / layout */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-7: 28px; --space-8: 32px;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 16px; --radius-full: 9999px;
+  --shadow-xs: 0 1px 2px rgba(24, 16, 12, 0.05);
+  --shadow-sm: 0 2px 8px rgba(24, 16, 12, 0.07);
+  --shadow-md: 0 8px 24px rgba(24, 16, 12, 0.10);
+  --content-max: 1280px;
+  --header-h: 68px;
   --sidebar-w: 256px;
   --topbar-h:  60px;
+
+  /* Dashboard aliases (legacy) */
+  --d-bg:       var(--page-bg);
+  --d-surface:  var(--surface);
+  --d-surface2: var(--surface-2);
+  --d-text:     var(--text-primary);
+  --d-text2:    var(--text-secondary);
+  --d-text3:    var(--text-muted);
+  --d-border:   var(--border);
+  --d-border2:  var(--border-subtle);
+  --d-shadow-xs: var(--shadow-xs);
+  --d-shadow-sm: var(--shadow-sm);
+  --d-shadow-md: var(--shadow-md);
+  --d-shadow-lg: var(--shadow-md);
+  --d-red:   var(--danger);
+  --d-amber: var(--warning);
+  --d-green: var(--success);
+  --d-blue:  var(--info);
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -53,8 +95,8 @@
 html { scroll-behavior: smooth; font-size: 16px; }
 
 body {
-  background:             #0B0F19;
-  color:                  #FFFFFF;
+  background:             var(--page-bg);
+  color:                  var(--text-primary);
   font-family:            var(--font-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering:         optimizeLegibility;
@@ -108,127 +150,67 @@ body:has(.dash-root) {
   background: rgba(0,0,0,0.10);
 }
 
-/* ── Dashboard button classes (CSS-based hover — no JS needed) */
-.btn-primary {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 20px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--orange);
-  color:           #fff;
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     700;
-  border:          none;
-  cursor:          pointer;
-  transition:      background 0.15s, transform 0.15s, box-shadow 0.15s;
-  box-shadow:      0 0 0 0 var(--orange-glow);
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-primary:hover:not(:disabled) {
-  background:  var(--orange-hover);
-  transform:   translateY(-1px);
-  box-shadow:  0 4px 18px var(--orange-glow);
-}
-.btn-primary:active:not(:disabled) { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.btn-secondary {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--d-surface);
-  color:           var(--d-text);
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     600;
-  border:          1px solid var(--d-border);
-  cursor:          pointer;
-  transition:      all 0.15s;
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-secondary:hover:not(:disabled) {
-  background:   var(--d-surface2);
-  border-color: rgba(0,0,0,0.14);
-  transform:    translateY(-1px);
-}
-.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.btn-navy {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--navy);
-  color:           #fff;
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     700;
-  border:          none;
-  cursor:          pointer;
-  transition:      all 0.15s;
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-navy:hover:not(:disabled) {
-  background: var(--navy-hover);
-  transform:  translateY(-1px);
-}
-
-.btn-ghost {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      rgba(255,255,255,0.08);
-  color:           #fff;
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     600;
-  border:          1px solid rgba(255,255,255,0.16);
-  cursor:          pointer;
-  transition:      all 0.15s;
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-ghost:hover:not(:disabled) {
-  background:   rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.28);
-}
-
+/* Legacy dashboard class names — same dimensions as .d-btn--md */
+.btn-primary,
+.btn-secondary,
+.btn-navy,
+.btn-ghost,
 .btn-danger {
   display:         inline-flex;
   align-items:     center;
   justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--d-red);
-  color:           #fff;
+  gap:             8px;
+  padding:         0 16px;
+  height:          40px;
+  border-radius:   var(--radius-md);
   font-family:     inherit;
   font-size:       13.5px;
-  font-weight:     700;
-  border:          none;
+  font-weight:     600;
+  border:          1px solid transparent;
   cursor:          pointer;
-  transition:      all 0.15s;
+  transition:      background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.15s, color 0.15s;
+  white-space:     nowrap;
+  text-decoration: none;
 }
-.btn-danger:hover { background: #B91C1C; transform: translateY(-1px); }
+.btn-primary,
+.btn-secondary,
+.btn-navy,
+.btn-ghost,
+.btn-danger { letter-spacing: -0.01em; }
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-navy:focus-visible,
+.btn-ghost:focus-visible,
+.btn-danger:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+.btn-primary { background: var(--orange); color: #fff; border-color: transparent; }
+.btn-primary:hover:not(:disabled) { background: var(--orange-hover); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-navy { background: var(--navy); color: #fff; }
+.btn-navy:hover:not(:disabled) { background: var(--navy-hover); transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text-primary); }
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover { background: #991B1B; }
 
 /* ── Chip / badge ──────────────────────────────────────────── */
 .chip {
@@ -287,9 +269,9 @@ body:has(.dash-root) {
 /* ── Input focus ───────────────────────────────────────────── */
 .dash-input {
   width:        100%;
-  height:       42px;
+  height:       40px;
   padding:      0 14px;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   border:       1.5px solid var(--d-border);
   background:   var(--d-surface);
   color:        var(--d-text);

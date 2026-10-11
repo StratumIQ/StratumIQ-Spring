@@ -171,7 +171,7 @@ function BenchmarksSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: ()
         subtitle="Side-by-side comparison against competitor models"
         action={
           <button onClick={() => { setAdding(a => !a); setErrors({}); }}
-            className="btn-secondary" style={{ height: 30, padding: "0 12px", fontSize: 12 }}>
+            className="btn-secondary">
             {adding ? "Cancel" : "+ Add Benchmark"}
           </button>
         }
@@ -213,8 +213,8 @@ function BenchmarksSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: ()
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => { setAdding(false); setErrors({}); setForm({ competitor_model: "", parameter: "", our_value: "", competitor_value: "", unit: "", advantage: "", notes: "" }); }}
-                className="btn-secondary" style={{ height: 32, padding: "0 14px", fontSize: 12 }}>Cancel</button>
-              <button onClick={handleAdd} className="btn-primary" style={{ height: 32, padding: "0 14px", fontSize: 12 }} disabled={saving}>
+                className="btn-secondary">Cancel</button>
+              <button onClick={handleAdd} className="btn-primary" disabled={saving}>
                 {saving ? "Adding…" : "Add Benchmark"}
               </button>
             </div>
@@ -605,7 +605,7 @@ function ReviewsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () =>
         subtitle="Field reviews from operators and site managers"
         action={
           <button onClick={() => { setAdding(a => !a); setErrors({}); }}
-            className="btn-secondary" style={{ height: 30, padding: "0 12px", fontSize: 12 }}>
+            className="btn-secondary">
             {adding ? "Cancel" : "+ Add Review"}
           </button>
         }
@@ -639,8 +639,8 @@ function ReviewsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () =>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => { setAdding(false); setErrors({}); setForm({ rating: "5", review_text: "", operational_hours: "", site_type: "", site_location: "" }); }}
-                className="btn-secondary" style={{ height: 32, padding: "0 14px", fontSize: 12 }}>Cancel</button>
-              <button onClick={handleAdd} className="btn-primary" style={{ height: 32, padding: "0 14px", fontSize: 12 }} disabled={saving}>
+                className="btn-secondary">Cancel</button>
+              <button onClick={handleAdd} className="btn-primary" disabled={saving}>
                 {saving ? "Submitting…" : "Submit Review"}
               </button>
             </div>

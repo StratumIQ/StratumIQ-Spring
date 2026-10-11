@@ -20,7 +20,8 @@ public final class RolePermissionProvider {
                 "admin:users:view",  "admin:users:edit",
                 "admin:fleet:view",  "admin:fleet:manage",
                 "admin:activity:view",
-                "admin:support:view", "admin:support:manage"
+                "admin:support:view", "admin:support:manage",
+                "equipment:view", "equipment:create", "equipment:edit", "equipment:delete"
             );
             case ADMIN -> List.of(
                 "fleet:view",        "fleet:create",
@@ -31,11 +32,13 @@ public final class RolePermissionProvider {
                 "admin:users:view",  "admin:users:edit",
                 "admin:fleet:view",  "admin:fleet:manage",
                 "admin:activity:view",
-                "admin:support:view", "admin:support:manage"
+                "admin:support:view", "admin:support:manage",
+                "equipment:view", "equipment:create", "equipment:edit", "equipment:delete"
             );
             case DEALER -> List.of(
                 "fleet:view",
-                "maintenance:view"
+                "maintenance:view",
+                "equipment:view"
             );
             case USER -> List.of(
                 "fleet:view",
@@ -44,7 +47,8 @@ public final class RolePermissionProvider {
                 "fleet:delete",
                 "maintenance:view",
                 "maintenance:create",
-                "maintenance:edit"
+                "maintenance:edit",
+                "equipment:view"
             );
         };
     }

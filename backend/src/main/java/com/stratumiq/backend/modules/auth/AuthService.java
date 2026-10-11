@@ -85,14 +85,11 @@ public class AuthService {
         User savedUser = userRepo.save(user);
         user = savedUser;
 
-        String otp = createAndStoreOtp(user.getId(), OtpType.EMAIL);
+        createAndStoreOtp(user.getId(), OtpType.EMAIL);
 
         // Log successful registration
         activityLogger.log(user.getTenantId(), user.getId(), user.getId(), "USER_REGISTERED", "USER", user.getId(),
             Map.of("email", user.getEmail(), "firstName", user.getFirstName(), "lastName", user.getLastName()));
-
-        // TODO: Replace with real email provider (Resend / SendGrid / AWS SES)
-        System.out.println("[AUTH] Email OTP for " + req.email() + ": " + otp);
 
         return Map.of(
             "message", "Registered. Check your email for the OTP.",
@@ -139,13 +136,11 @@ public class AuthService {
     public void sendPhoneOtp(SendPhoneOtpRequest req) {
         Long userId = Objects.requireNonNull(req.userId(), "userId");
         User user = userRepo.findById(userId).orElse(null);
-        String otp = createAndStoreOtp(userId, OtpType.PHONE);
+        createAndStoreOtp(userId, OtpType.PHONE);
 
         activityLogger.log(user != null ? user.getTenantId() : null, userId, userId,
             "PHONE_OTP_SENT", "USER", userId, Map.of("phone", req.phone()));
 
-        // TODO: Replace with Twilio / MSG91 / AWS SNS
-        System.out.println("[AUTH] Phone OTP for " + req.phone() + ": " + otp);
     }
 
     // ── VERIFY PHONE OTP ─────────────────────────────────────────────────
@@ -184,11 +179,11 @@ public class AuthService {
     @SuppressWarnings("null")
     public Map<String, String> login(LoginRequest req) {
         String email = req.email().toLowerCase();
-        logger.info("Login attempt for email: {}", email);
+        logger.info("Login attempt");
 
         // Check if account is locked due to brute-force attempts
         if (tokenStorage.isAccountLocked(email)) {
-            logger.warn("Login attempt on locked account: {}", email);
+            logger.warn("Login attempt on locked account");
             throw new ResponseStatusException(HttpStatus.LOCKED, 
                 "Account temporarily locked due to repeated failed logins");
         }
@@ -196,21 +191,21 @@ public class AuthService {
         // Fetch user
         User user = userRepo.findByEmail(email)
             .orElseThrow(() -> {
-                logger.warn("Login attempt for non-existent email: {}", email);
+                logger.warn("Login attempt for non-existent account");
                 return new ResponseStatusException(HttpStatus.UNAUTHORIZED, 
                     "Invalid email or password");
             });
 
         // Check account status
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
-            logger.warn("Login attempt for inactive account: {} (status: {})", email, user.getAccountStatus());
+            logger.warn("Login attempt for inactive account (status: {})", user.getAccountStatus());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Account not verified. Complete signup first.");
         }
 
         // Verify password
         if (!encoder.matches(req.password(), user.getPassword())) {
-            logger.warn("Failed login attempt for {}", email);
+            logger.warn("Failed login attempt");
             
             // Record failed attempt and check if we should lock the account
             tokenStorage.recordFailedLogin(email);
@@ -219,7 +214,7 @@ public class AuthService {
             if (failedCount >= 5) {
                 // Lock account for 30 minutes
                 tokenStorage.lockAccount(email, 1800);  // 30 minutes
-                logger.warn("Account locked after 5 failed attempts: {}", email);
+                logger.warn("Account locked after 5 failed attempts");
                 
                 activityLogger.log(
                     user.getTenantId(),
@@ -251,7 +246,7 @@ public class AuthService {
 
         // Successful login — reset failure counter and update login timestamp
         tokenStorage.clearFailedLoginCount(email);
-        logger.info("Successful login for: {}", email);
+        logger.info("Successful login");
         
         user.setLastLoginAt(Instant.now());
         user = Optional.ofNullable(userRepo.save(user))

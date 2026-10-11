@@ -411,9 +411,8 @@ export default function AuthPage() {
             ))}
           </div>
 
-          {/* Stats */}
           <div className="auth-stats">
-            {[["2,400+", "Machines"], ["98.2%", "Uptime"], ["47%", "Less Downtime"]].map(([v, l]) => (
+            {[["Fleet", "Records"], ["Parts", "Catalogue"], ["Support", "Tickets"]].map(([v, l]) => (
               <div key={l} className="auth-stat">
                 <div className="auth-stat-value">{v}</div>
                 <div className="auth-stat-label">{l}</div>
