@@ -339,7 +339,7 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
         <div style={{ fontSize: 16, fontWeight: 700, color: DASH.text, display: "flex", alignItems: "center", gap: 8 }}>
           <Icons.Clock size={18} /> Operations Log
         </div>
-        <button className="btn-primary" style={{ height: 36, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setShowForm(f => !f)}>
+        <button className="btn-primary" onClick={() => setShowForm(f => !f)}>
           {showForm ? <Icons.Close size={12} /> : <Icons.AddEquipment size={12} />}
           {showForm ? "Cancel" : "Log Event"}
         </button>
@@ -379,7 +379,7 @@ function OperationsTab({ equipmentId, currentHours, onHoursUpdated }: {
 
           {formErr && <div style={{ padding: "10px 14px", background: "rgba(220,38,38,0.08)", borderRadius: 8, fontSize: 12.5, color: "#DC2626", marginBottom: 16 }}>{formErr}</div>}
           
-          <button type="submit" className="btn-primary" style={{ height: 40, fontSize: 13, display: "flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center" }} disabled={submitting}>
+          <button type="submit" className="btn-primary" style={{ width: "100%" }} disabled={submitting}>
             {submitting ? <Loader2 size={14} className="d-spin" /> : <Icons.Check size={14} />}
             {submitting ? "Saving..." : "Save Event"}
           </button>
@@ -509,7 +509,7 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
         <div style={{ fontSize: 16, fontWeight: 700, color: DASH.text, display: "flex", alignItems: "center", gap: 8 }}>
           <Icons.Maintenance size={18} /> Service History
         </div>
-        <button className="btn-primary" style={{ height: 36, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setShowForm(f => !f)}>
+        <button className="btn-primary" onClick={() => setShowForm(f => !f)}>
           {showForm ? <Icons.Close size={12} /> : <Icons.AddEquipment size={12} />}
           {showForm ? "Cancel" : "Add Service Record"}
         </button>
@@ -557,7 +557,7 @@ function MaintenanceTab({ equipmentId }: { equipmentId: number }) {
             <textarea className="dash-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional notes" style={{ height: 80, fontSize: 13, resize: "vertical", paddingTop: 10 }} />
           </div>
           {formErr && <div style={{ padding: "10px 14px", background: "rgba(220,38,38,0.08)", borderRadius: 8, fontSize: 12.5, color: "#DC2626", marginBottom: 16 }}>{formErr}</div>}
-          <button type="submit" className="btn-primary" style={{ height: 40, fontSize: 13, display: "flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center" }} disabled={saving}>
+          <button type="submit" className="btn-primary" style={{ width: "100%" }} disabled={saving}>
             {saving ? <Loader2 size={14} className="d-spin" /> : <Icons.Check size={14} />}
             {saving ? "Saving..." : "Add Record"}
           </button>

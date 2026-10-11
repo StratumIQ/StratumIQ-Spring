@@ -282,7 +282,7 @@ function PerformanceSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: (
         subtitle="CSS vs capacity data rows (all fields optional, enter at least one)"
         action={
           <button onClick={() => { setAdding(a => !a); if (adding) resetForm(); }}
-            className="btn-secondary" style={{ height: 30, padding: "0 12px", fontSize: 12 }}>
+            className="btn-secondary">
             {adding ? "Cancel" : "+ Add Row"}
           </button>
         }
@@ -316,8 +316,8 @@ function PerformanceSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: (
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={resetForm} className="btn-secondary" style={{ height: 32, padding: "0 14px", fontSize: 12 }}>Reset</button>
-              <button onClick={handleAdd} className="btn-primary" style={{ height: 32, padding: "0 14px", fontSize: 12 }} disabled={saving}>
+              <button onClick={resetForm} className="btn-secondary">Reset</button>
+              <button onClick={handleAdd} className="btn-primary" disabled={saving}>
                 {saving ? "Adding…" : "Add Row"}
               </button>
             </div>
@@ -459,7 +459,7 @@ function WearPartsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () 
         subtitle="Consumable components and replacement data"
         action={
           <button onClick={() => { setAdding(a => !a); setErrors({}); }}
-            className="btn-secondary" style={{ height: 30, padding: "0 12px", fontSize: 12 }}>
+            className="btn-secondary">
             {adding ? "Cancel" : "+ Add Part"}
           </button>
         }
@@ -498,8 +498,8 @@ function WearPartsSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: () 
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => { setAdding(false); setErrors({}); setForm({ part_name: "", part_number: "", material: "", weight_kg: "", expected_life_hours: "", unit_cost_usd: "", oem_compatible: "true", notes: "" }); }}
-                className="btn-secondary" style={{ height: 32, padding: "0 14px", fontSize: 12 }}>Cancel</button>
-              <button onClick={handleAdd} className="btn-primary" style={{ height: 32, padding: "0 14px", fontSize: 12 }} disabled={saving}>
+                className="btn-secondary">Cancel</button>
+              <button onClick={handleAdd} className="btn-primary" disabled={saving}>
                 {saving ? "Adding…" : "Add Part"}
               </button>
             </div>
@@ -645,7 +645,7 @@ function MaintenanceSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: (
         subtitle="Preventive maintenance tasks and intervals"
         action={
           <button onClick={() => { setAdding(a => !a); setErrors({}); }}
-            className="btn-secondary" style={{ height: 30, padding: "0 12px", fontSize: 12 }}>
+            className="btn-secondary">
             {adding ? "Cancel" : "+ Add Task"}
           </button>
         }
@@ -685,8 +685,8 @@ function MaintenanceSection({ spec, onSaved }: { spec: EquipmentSpec; onSaved: (
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => { setAdding(false); setErrors({}); setForm({ task_name: "", interval_hours: "", interval_days: "", duration_hours: "", skill_level: "", parts_required: "", notes: "" }); }}
-                className="btn-secondary" style={{ height: 32, padding: "0 14px", fontSize: 12 }}>Cancel</button>
-              <button onClick={handleAdd} className="btn-primary" style={{ height: 32, padding: "0 14px", fontSize: 12 }} disabled={saving}>
+                className="btn-secondary">Cancel</button>
+              <button onClick={handleAdd} className="btn-primary" disabled={saving}>
                 {saving ? "Adding…" : "Add Task"}
               </button>
             </div>

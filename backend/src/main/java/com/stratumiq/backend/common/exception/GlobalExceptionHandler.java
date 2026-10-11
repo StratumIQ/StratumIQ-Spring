@@ -6,7 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +15,12 @@ import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 // Replaces:
@@ -121,31 +126,44 @@ public class GlobalExceptionHandler {
             .body(Map.of("error", ex.getReason()));
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<?> handleRouteNotFound(NoResourceFoundException ex,
+                                                   HttpServletRequest request,
+                                                   HttpServletResponse response) {
+        String requestId = requestId(request, response);
+        logger.warn("[{}] No handler for {} {}", requestId, request.getMethod(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .header("X-Request-ID", requestId)
+            .body(Map.of("error", "Resource not found", "requestId", requestId));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(Map.of("error", "Access denied"));
+    }
+
     // Replaces global 500 handler in app.js
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleGeneric(Exception ex) {
-        // Log full exception details for production debugging
-        String errorId = "ERR-" + System.currentTimeMillis();
-        logger.error("[{}] Unhandled exception: {} - {}", 
-            errorId, 
-            ex.getClass().getSimpleName(), 
-            ex.getMessage(), 
-            ex);
-        
-        // Log root cause if available
-        if (ex.getCause() != null) {
-            logger.error("[{}] Root cause: {} - {}", 
-                errorId,
-                ex.getCause().getClass().getSimpleName(),
-                ex.getCause().getMessage());
-        }
-        
+    public ResponseEntity<?> handleGeneric(Exception ex, HttpServletRequest request,
+                                            HttpServletResponse response) {
+        String requestId = requestId(request, response);
+        logger.error("[{}] Unhandled exception for {} {}", requestId,
+            request.getMethod(), request.getRequestURI(), ex);
         return ResponseEntity.status(500)
+            .header("X-Request-ID", requestId)
             .body(Map.of(
                 "error", "Internal server error",
-                "errorId", errorId,
-                "type", ex.getClass().getSimpleName(),
-                "message", ex.getMessage() != null ? ex.getMessage() : "Unknown error"
+                "requestId", requestId
             ));
+    }
+
+    private String requestId(HttpServletRequest request, HttpServletResponse response) {
+        String requestId = request.getHeader("X-Request-ID");
+        if (requestId == null || !requestId.matches("[A-Za-z0-9._-]{1,64}")) {
+            requestId = UUID.randomUUID().toString();
+        }
+        response.setHeader("X-Request-ID", requestId);
+        return requestId;
     }
 }

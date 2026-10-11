@@ -23,6 +23,7 @@ export class ApiError extends Error {
     public status: number,
     public details?: Record<string, string>,
     public code?: string,
+    public requestId?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -113,12 +114,19 @@ export async function apiClient<T = unknown, B = unknown>(
   }
 
   if (!res.ok) {
-    const err = data as { error?: string; code?: string; fields?: Record<string, string> } | null;
+    const err = data as {
+      error?: string;
+      code?: string;
+      fields?: Record<string, string>;
+      requestId?: string;
+      errorId?: string;
+    } | null;
     throw new ApiError(
       err?.error ?? "Something went wrong",
       res.status,
       err?.fields,
       err?.code,
+      err?.requestId ?? err?.errorId ?? res.headers.get("X-Request-ID") ?? undefined,
     );
   }
 

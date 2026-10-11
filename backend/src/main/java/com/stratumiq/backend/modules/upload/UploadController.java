@@ -30,9 +30,14 @@ public class UploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "folder", defaultValue = "fleet") String folder,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        String url = "marketing".equalsIgnoreCase(folder)
-            ? fileStorageService.storeMarketingImage(file)
-            : fileStorageService.storeFleetImage(file);
+        String url;
+        if ("marketing".equalsIgnoreCase(folder)) {
+            url = fileStorageService.storeMarketingImage(file);
+        } else if ("parts".equalsIgnoreCase(folder)) {
+            url = fileStorageService.storePartsImage(file);
+        } else {
+            url = fileStorageService.storeFleetImage(file);
+        }
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("fileName", file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload");
         metadata.put("fileSizeBytes", file.getSize());

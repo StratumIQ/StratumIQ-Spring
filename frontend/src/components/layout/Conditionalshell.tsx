@@ -18,7 +18,7 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
 
   if (showShell) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="site-shell flex flex-col min-h-screen">
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

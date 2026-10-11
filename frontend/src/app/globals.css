@@ -44,6 +44,24 @@
 
   --sidebar-w: 256px;
   --topbar-h:  60px;
+
+  /* Dashboard aliases (legacy) */
+  --d-bg:       var(--page-bg);
+  --d-surface:  var(--surface);
+  --d-surface2: var(--surface-2);
+  --d-text:     var(--text-primary);
+  --d-text2:    var(--text-secondary);
+  --d-text3:    var(--text-muted);
+  --d-border:   var(--border);
+  --d-border2:  var(--border-subtle);
+  --d-shadow-xs: var(--shadow-xs);
+  --d-shadow-sm: var(--shadow-sm);
+  --d-shadow-md: var(--shadow-md);
+  --d-shadow-lg: var(--shadow-md);
+  --d-red:   var(--danger);
+  --d-amber: var(--warning);
+  --d-green: var(--success);
+  --d-blue:  var(--info);
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -108,127 +126,67 @@ body:has(.dash-root) {
   background: rgba(0,0,0,0.10);
 }
 
-/* ── Dashboard button classes (CSS-based hover — no JS needed) */
-.btn-primary {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 20px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--orange);
-  color:           #fff;
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     700;
-  border:          none;
-  cursor:          pointer;
-  transition:      background 0.15s, transform 0.15s, box-shadow 0.15s;
-  box-shadow:      0 0 0 0 var(--orange-glow);
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-primary:hover:not(:disabled) {
-  background:  var(--orange-hover);
-  transform:   translateY(-1px);
-  box-shadow:  0 4px 18px var(--orange-glow);
-}
-.btn-primary:active:not(:disabled) { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.btn-secondary {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--d-surface);
-  color:           var(--d-text);
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     600;
-  border:          1px solid var(--d-border);
-  cursor:          pointer;
-  transition:      all 0.15s;
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-secondary:hover:not(:disabled) {
-  background:   var(--d-surface2);
-  border-color: rgba(0,0,0,0.14);
-  transform:    translateY(-1px);
-}
-.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.btn-navy {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--navy);
-  color:           #fff;
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     700;
-  border:          none;
-  cursor:          pointer;
-  transition:      all 0.15s;
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-navy:hover:not(:disabled) {
-  background: var(--navy-hover);
-  transform:  translateY(-1px);
-}
-
-.btn-ghost {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      rgba(255,255,255,0.08);
-  color:           #fff;
-  font-family:     inherit;
-  font-size:       13.5px;
-  font-weight:     600;
-  border:          1px solid rgba(255,255,255,0.16);
-  cursor:          pointer;
-  transition:      all 0.15s;
-  white-space:     nowrap;
-  text-decoration: none;
-}
-.btn-ghost:hover:not(:disabled) {
-  background:   rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.28);
-}
-
+/* Legacy dashboard class names — same dimensions as .d-btn--md */
+.btn-primary,
+.btn-secondary,
+.btn-navy,
+.btn-ghost,
 .btn-danger {
   display:         inline-flex;
   align-items:     center;
   justify-content: center;
-  gap:             6px;
-  padding:         0 18px;
-  height:          38px;
-  border-radius:   9px;
-  background:      var(--d-red);
-  color:           #fff;
+  gap:             8px;
+  padding:         0 16px;
+  height:          40px;
+  border-radius:   var(--radius-md);
   font-family:     inherit;
   font-size:       13.5px;
-  font-weight:     700;
-  border:          none;
+  font-weight:     600;
+  border:          1px solid transparent;
   cursor:          pointer;
-  transition:      all 0.15s;
+  transition:      background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.15s, color 0.15s;
+  white-space:     nowrap;
+  text-decoration: none;
 }
-.btn-danger:hover { background: #B91C1C; transform: translateY(-1px); }
+.btn-primary,
+.btn-secondary,
+.btn-navy,
+.btn-ghost,
+.btn-danger { letter-spacing: -0.01em; }
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-navy:focus-visible,
+.btn-ghost:focus-visible,
+.btn-danger:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+.btn-primary { background: var(--orange); color: #fff; border-color: transparent; }
+.btn-primary:hover:not(:disabled) { background: var(--orange-hover); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-navy { background: var(--navy); color: #fff; }
+.btn-navy:hover:not(:disabled) { background: var(--navy-hover); transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text-primary); }
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover { background: #991B1B; }
 
 /* ── Chip / badge ──────────────────────────────────────────── */
 .chip {
@@ -287,9 +245,9 @@ body:has(.dash-root) {
 /* ── Input focus ───────────────────────────────────────────── */
 .dash-input {
   width:        100%;
-  height:       42px;
+  height:       40px;
   padding:      0 14px;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   border:       1.5px solid var(--d-border);
   background:   var(--d-surface);
   color:        var(--d-text);

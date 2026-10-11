@@ -12,6 +12,7 @@ import {
   Menu,
   Building2,
   Megaphone,
+  Package,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";

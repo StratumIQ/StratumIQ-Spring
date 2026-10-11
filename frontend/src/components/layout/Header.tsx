@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import useScrollHeader from "@/hooks/useScrollHeader";
-import { NAV_ITEMS, BRAND } from "@/lib/constants";
+import { NAV_ITEMS } from "@/lib/constants";
 import Container from "@/components/ui/Container";
-
-const O = BRAND.orange;
+import Button from "@/components/ui/Button";
 
 export default function Header() {
   const scrolled    = useScrollHeader();
@@ -17,7 +16,6 @@ export default function Header() {
 
   const isAuthPage   = pathname?.startsWith("/auth");
 
-  /* Track active section via IntersectionObserver */
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
     NAV_ITEMS.forEach(({ href }) => {
@@ -62,7 +60,13 @@ export default function Header() {
               <img src="/logo-icon.png" alt="Stratum IQ" style={{ height: 104, width: 154 }} />
             </Link>
 
-            {/* Desktop Nav */}
+          <div className="site-header-actions">
+            <Button href="/auth?mode=login" variant="ghost" size="md" className="site-header-ghost">
+              Sign In
+            </Button>
+            <Button href="/auth?mode=register" variant="primary" size="md">
+              Get Started
+            </Button>
             {!isAuthPage && (
               <nav style={{ display: "flex", alignItems: "center", gap: 36, marginLeft: "clamp(24px,4vw,64px)" }}
                 className="hidden-mobile">
@@ -171,47 +175,26 @@ export default function Header() {
               )}
             </div>
           </div>
-        </Container>
+        </div>
+      </Container>
 
-        {/* Mobile drawer */}
-        {mobileOpen && !isAuthPage && (
-          <div style={{ background: "rgba(3,9,20,0.97)", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "12px 20px 20px" }}>
-            {NAV_ITEMS.map(({ label, href }) => (
-              <button key={label} onClick={() => scrollTo(href)} style={{
-                display: "block", width: "100%", textAlign: "left",
-                background: "none", border: "none", cursor: "pointer",
-                padding: "11px 0", fontSize: 15,
-                color: active === href ? O : "rgba(255,255,255,0.6)",
-                fontWeight: 500, fontFamily: "inherit",
-                borderBottom: "1px solid rgba(255,255,255,0.04)",
-              }}>
-                {label}
-              </button>
-            ))}
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <Link href="/auth?mode=login" style={{
-                flex: 1, textAlign: "center", padding: "10px",
-                borderRadius: 8, fontSize: 13, fontWeight: 600,
-                color: "#fff", textDecoration: "none",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.15)",
-              }}>Sign In</Link>
-              <Link href="/auth?mode=register" style={{
-                flex: 1, textAlign: "center", padding: "10px",
-                borderRadius: 8, fontSize: 13, fontWeight: 600,
-                color: "#fff", textDecoration: "none", background: O,
-              }}>Get Started</Link>
-            </div>
+      {mobileOpen && !isAuthPage && (
+        <div className="site-drawer">
+          {NAV_ITEMS.map(({ label, href }) => (
+            <button
+              key={label}
+              onClick={() => scrollTo(href)}
+              className={`site-drawer-link${active === href ? " is-active" : ""}`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="site-drawer-actions">
+            <Button href="/auth?mode=login" variant="outline" size="md">Sign In</Button>
+            <Button href="/auth?mode=register" variant="primary" size="md">Get Started</Button>
           </div>
-        )}
-      </header>
-
-      <style>{`
-        @media (max-width: 767px) {
-          .hidden-mobile { display: none !important; }
-          .show-mobile   { display: flex !important; }
-        }
-      `}</style>
-    </>
+        </div>
+      )}
+    </header>
   );
 }

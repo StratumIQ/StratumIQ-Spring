@@ -1,6 +1,7 @@
 "use client";
 
 import "./admin.css";
+import "@/styles/parts.css";
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";

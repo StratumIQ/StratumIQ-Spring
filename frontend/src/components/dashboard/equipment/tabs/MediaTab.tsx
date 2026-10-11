@@ -200,8 +200,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
               setAdding(a => !a);
               setErrors({});
             }} 
-            className="btn-primary" 
-            style={{ height: 32, padding: "0 14px", fontSize: 12 }}
+            className="btn-primary"
           >
             {adding ? "Cancel" : "+ Upload Media"}
           </button>
@@ -296,15 +295,13 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
                     description: "" 
                   });
                 }} 
-                className="btn-secondary" 
-                style={{ height: 34, padding: "0 18px", fontSize: 13 }}
+                className="btn-secondary"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleAdd} 
                 className="btn-primary" 
-                style={{ height: 34, padding: "0 18px", fontSize: 13 }} 
                 disabled={saving}
               >
                 {saving ? "Uploading..." : "Upload Media"}
@@ -361,8 +358,7 @@ export default function MediaTab({ spec, onRefresh }: { spec: EquipmentSpec; onR
             action={
               <button 
                 onClick={() => setAdding(true)} 
-                className="btn-primary" 
-                style={{ height: 34, padding: "0 16px", fontSize: 13 }}
+                className="btn-primary"
               >
                 Upload First File
               </button>
