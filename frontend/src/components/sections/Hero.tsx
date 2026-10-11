@@ -25,7 +25,8 @@ export default function Hero() {
       <div className="hero-overlay" />
       <div className="hero-fade" />
 
-      <div className="hero-content">
+      {/* Content */}
+      <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 py-24">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

@@ -27,22 +27,22 @@ export default function SupportLauncher() {
 
     const presets: Record<Exclude<SupportAction, "tickets">, { type: FormState["type"]; subject: string; description: string }> = {
       ticket: {
-        type: "TICKET",
+        type: "SERVICE",
         subject: "Need help with an operational request",
         description: "Share the context for the issue, affected workflow, and any urgent details.",
       },
       bug: {
-        type: "BUG",
+        type: "PLATFORM",
         subject: "I found a bug in the dashboard",
         description: "Describe what happened, where it happened, and what you expected instead.",
       },
       feature: {
-        type: "FEATURE_REQUEST",
+        type: "OTHER",
         subject: "I would like a workflow improvement",
         description: "Describe the workflow you want improved and the outcome you would like to see.",
       },
       feedback: {
-        type: "FEEDBACK",
+        type: "OTHER",
         subject: "Feedback about the experience",
         description: "Share any observations about the experience, clarity, or usability of the platform.",
       },

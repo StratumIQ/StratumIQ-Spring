@@ -90,7 +90,12 @@ export async function cropAndCompress(
   return new File([blob], name, { type: "image/jpeg" });
 }
 
-export async function uploadImage(file: File, folder: "fleet" | "marketing" | "parts" = "fleet"): Promise<string> {
+/**
+ * Uploads a file to the backend's authenticated /api/upload endpoint (Spring Boot),
+ * NOT the Next.js app's own filesystem — the frontend is deployed on Vercel where
+ * the filesystem is read-only/ephemeral at runtime, so writes to `public/` fail there.
+ */
+export async function uploadImage(file: File, folder: "fleet" | "marketing" = "fleet"): Promise<string> {
   const { API_URL } = await import("@/lib/constants");
   const { getAccessToken } = await import("@/lib/auth/token");
 

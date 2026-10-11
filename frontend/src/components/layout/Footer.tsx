@@ -18,12 +18,16 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="site-footer">
-      <div className="site-footer-inner">
-        <div className="site-footer-grid">
-          <div className="site-footer-brand">
-            <div className="site-footer-mark">
-              <div className="site-footer-mark-icon" aria-hidden>
+    <footer style={{ background: "#0B0F19", borderTop: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}>
+      <div className="w-full px-6 sm:px-10 lg:px-16" style={{ paddingTop: 52 }}>
+
+        {/* Top grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "clamp(24px,4vw,48px)", marginBottom: 48 }}>
+
+          {/* Brand */}
+          <div style={{ gridColumn: "span 1" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${BRAND.orange}, ${BRAND.orangeHover})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
                   <path d="M14 5C14 3.34 12.66 2 11 2H7C4.79 2 4.79 7 7 7H11C13.21 7 13.21 12 11 12H6" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
                 </svg>

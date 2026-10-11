@@ -10,11 +10,11 @@ import {
   Settings2,
   BookOpen,
   BarChart3,
+  Cpu,
   ArrowLeft,
   Check,
   type LucideIcon,
 } from "lucide-react";
-import PageShell from "../layout/PageShell";
 import GlassCard from "../ui/GlassCard";
 import Button from "../ui/Button";
 import { BRAND } from "@/lib/constants";
@@ -39,6 +39,18 @@ const MODULE_META: Record<
       "Manuals & documents",
       "Chatbot per machine",
       "Maintenance history",
+    ],
+  },
+  Equipment: {
+    icon: Cpu,
+    color: "#2563EB",
+    desc: "Browse the OEM equipment catalogue. Compare brands, models, and technical specs to find the right machine.",
+    features: [
+      "Brand & model catalogue",
+      "Spec comparison",
+      "Filter by type & mobility",
+      "Detailed technical sheets",
+      "Save to shortlist",
     ],
   },
   Parts: {
@@ -137,10 +149,7 @@ export default function ComingSoon({ module, description, eta }: Props) {
   const Icon = meta.icon;
 
   return (
-    <PageShell
-      breadcrumbs={[{ label: module }]}
-      maxWidth={720}
-    >
+    <div style={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: 20 }}>
       <GlassCard padding="lg" className="d-coming-soon">
         <div
           className="d-coming-soon-accent"
@@ -214,6 +223,6 @@ export default function ComingSoon({ module, description, eta }: Props) {
           <Button size="sm">Load Demo</Button>
         </Link>
       </GlassCard>
-    </PageShell>
+    </div>
   );
 }

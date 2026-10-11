@@ -4,11 +4,7 @@ import ComingSoon from "@/components/dashboard/common/ComingSoon";
 
 export default function MaintenancePage() {
   return (
-    <PageShell
-      title="Maintenance"
-      description="Service scheduling and overdue work will appear here when the module is connected to live records."
-      breadcrumbs={[{ label: "Maintenance" }]}
-    >
+    <PageShell>
       <ComingSoon module="Maintenance" />
     </PageShell>
   );

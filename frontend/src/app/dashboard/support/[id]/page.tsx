@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Clock3, FileImage, Headphones, MessageSquareText, Paperclip, Send, Sparkles, Ticket, Bug, Wrench, HelpCircle, ShieldAlert, Settings } from "lucide-react";
+import { ArrowLeft, Clock3, FileImage, Headphones, MessageSquareText, Paperclip, Send, Ticket, Bug, Wrench, Settings, Truck, Package, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import PageShell from "@/components/dashboard/layout/PageShell";
 import GlassCard from "@/components/dashboard/ui/GlassCard";
@@ -13,11 +13,13 @@ import Badge from "@/components/dashboard/ui/Badge";
 import EmptyState from "@/components/dashboard/ui/EmptyState";
 import Skeleton from "@/components/dashboard/ui/Skeleton";
 import { ApiError, dashApi } from "@/lib/api/client";
+import { uploadImage } from "@/lib/imageUtils";
+import { resolveAssetUrl } from "@/lib/constants";
 
 type SupportTicket = {
   id: number;
   ticketNumber: string;
-  type: "TICKET" | "FEEDBACK";
+  type: "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
   subject: string;
   description: string | null;
   status: "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED";
@@ -74,6 +76,69 @@ function buildBodyWithAttachments(body: string, attachments: UploadedAttachment[
   return lines.join("\n");
 }
 
+type ParsedAttachment = { name: string; url: string };
+
+function parseAttachmentsFromText(raw?: string | null): { text: string; attachments: ParsedAttachment[] } {
+  if (!raw) return { text: "", attachments: [] };
+  const marker = /\n?Attachments:\n?/;
+  const match = raw.match(marker);
+  if (!match || match.index === undefined) return { text: raw, attachments: [] };
+
+  const text = raw.slice(0, match.index).trim();
+  const block = raw.slice(match.index + match[0].length);
+  const attachments = Array.from(block.matchAll(/^-\s*(.+?):\s*(\S+)\s*$/gm)).map((m) => ({
+    name: m[1].trim(),
+    url: m[2].trim(),
+  }));
+  return { text, attachments };
+}
+
+function isImageAttachment(name: string) {
+  return /\.(png|jpe?g|webp|gif)$/i.test(name);
+}
+
+function AttachmentChips({ attachments }: { attachments: ParsedAttachment[] }) {
+  if (!attachments.length) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+      {attachments.map((attachment, idx) => (
+        <a
+          key={`${attachment.url}-${idx}`}
+          href={resolveAssetUrl(attachment.url) ?? attachment.url}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            borderRadius: 10,
+            border: "1px solid var(--b1)",
+            background: "rgba(255,255,255,0.7)",
+            color: "var(--t2)",
+            fontSize: 12.5,
+            fontWeight: 600,
+            textDecoration: "none",
+            maxWidth: 220,
+          }}
+        >
+          {isImageAttachment(attachment.name) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resolveAssetUrl(attachment.url) ?? attachment.url}
+              alt={attachment.name}
+              style={{ width: 28, height: 28, borderRadius: 6, objectFit: "cover", flexShrink: 0 }}
+            />
+          ) : (
+            <Paperclip size={14} color="var(--or)" style={{ flexShrink: 0 }} />
+          )}
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{attachment.name}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function SupportTicketDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -122,17 +187,11 @@ export default function SupportTicketDetailPage() {
     try {
       const uploaded: UploadedAttachment[] = [];
       for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = await fetch("/api/upload", { method: "POST", body: formData });
-        const payload = await response.json();
-        if (!response.ok || !payload?.url) {
-          throw new Error(payload?.error || "Upload failed");
-        }
+        const url = await uploadImage(file, "fleet");
         uploaded.push({
           id: `${file.name}-${Date.now()}`,
           name: file.name,
-          url: payload.url,
+          url,
           size: file.size,
           type: file.type,
         });
@@ -153,6 +212,10 @@ export default function SupportTicketDetailPage() {
   };
 
   const timelineEntries = useMemo(() => (ticket?.notes ?? []).slice().reverse(), [ticket]);
+  const { text: descriptionText, attachments: descriptionAttachments } = useMemo(
+    () => parseAttachmentsFromText(ticket?.description),
+    [ticket]
+  );
 
   return (
     <PageShell
@@ -187,18 +250,18 @@ export default function SupportTicketDetailPage() {
                   {(() => {
                     const issueType = (ticket as any).issueType as string | undefined;
                     const key = (issueType || ticket.type || "").toString().toLowerCase();
-                    if (key.includes("bug")) return <Bug size={14} />;
-                    if (key.includes("feature")) return <Sparkles size={14} />;
-                    if (key.includes("question") || key.includes("help")) return <HelpCircle size={14} />;
-                    if (key.includes("equipment") || key.includes("equipment_issue") || key.includes("asset")) return <Settings size={14} />;
-                    if (key.includes("maintenance")) return <Wrench size={14} />;
-                    if (key.includes("safety")) return <ShieldAlert size={14} />;
-                    if (ticket.type === "FEEDBACK") return <Sparkles size={14} />;
+                    if (key.includes("fleet")) return <Truck size={14} />;
+                    if (key.includes("equipment")) return <Settings size={14} />;
+                    if (key.includes("service")) return <Wrench size={14} />;
+                    if (key.includes("order")) return <Package size={14} />;
+                    if (key.includes("billing") || key.includes("account")) return <CreditCard size={14} />;
+                    if (key.includes("platform")) return <Bug size={14} />;
                     return <Ticket size={14} />;
                   })()} {ticket.ticketNumber}
                 </div>
                 <h2 style={{ fontSize: 24, fontWeight: 800, margin: "10px 0 6px", color: "var(--t1)" }}>{ticket.subject}</h2>
-                <p style={{ margin: 0, color: "var(--t3)", lineHeight: 1.7, fontSize: 14 }}>{ticket.description || "No description provided yet."}</p>
+                <p style={{ margin: 0, color: "var(--t3)", lineHeight: 1.7, fontSize: 14 }}>{descriptionText || "No description provided yet."}</p>
+                <AttachmentChips attachments={descriptionAttachments} />
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Badge variant={statusConfig[ticket.status].variant} size="md">{statusConfig[ticket.status].label}</Badge>
@@ -219,33 +282,30 @@ export default function SupportTicketDetailPage() {
                     No updates yet. This thread will fill with progress notes as the request moves forward.
                   </div>
                 ) : (
-                  timelineEntries.map((entry) => (
-                    <div key={entry.id} style={{ display: "grid", gap: 8, padding: 14, borderRadius: 16, border: "1px solid var(--b1)", background: "rgba(255,255,255,0.64)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ display: "inline-flex", width: 30, height: 30, borderRadius: 999, background: "rgba(232,105,44,0.10)", color: "var(--or)", alignItems: "center", justifyContent: "center" }}>
-                            {entry.isInternal ? <Headphones size={14} /> : <MessageSquareText size={14} />}
-                          </span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                            {entry.isInternal ? "Internal update" : "Customer update"}
+                  timelineEntries.map((entry) => {
+                    const { text: entryText, attachments: entryAttachments } = parseAttachmentsFromText(entry.body);
+                    return (
+                      <div key={entry.id} style={{ display: "grid", gap: 8, padding: 14, borderRadius: 16, border: "1px solid var(--b1)", background: "rgba(255,255,255,0.64)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ display: "inline-flex", width: 30, height: 30, borderRadius: 999, background: "rgba(232,105,44,0.10)", color: "var(--or)", alignItems: "center", justifyContent: "center" }}>
+                              {entry.isInternal ? <Headphones size={14} /> : <MessageSquareText size={14} />}
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                              {entry.isInternal ? "Internal update" : "Customer update"}
+                            </span>
+                          </div>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--t3)", fontSize: 12 }}>
+                            <Clock3 size={12} /> {formatDate(entry.createdAt)}
                           </span>
                         </div>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--t3)", fontSize: 12 }}>
-                          <Clock3 size={12} /> {formatDate(entry.createdAt)}
-                        </span>
+                        {entryText && (
+                          <div style={{ color: "var(--t2)", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{entryText}</div>
+                        )}
+                        <AttachmentChips attachments={entryAttachments} />
                       </div>
-                      <div style={{ color: "var(--t2)", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{entry.body}</div>
-                      {entry.body.includes("http") && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {entry.body.split(/\s+/).filter((token) => token.startsWith("http")).map((link, idx) => (
-                            <a key={`${link}-${idx}`} href={link} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--or)", fontSize: 12, fontWeight: 600 }}>
-                              <Paperclip size={12} /> Open attachment
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </GlassCard>
@@ -277,7 +337,7 @@ export default function SupportTicketDetailPage() {
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{attachment.name}</div>
                         <div style={{ fontSize: 12, color: "var(--t3)" }}>{(attachment.size / 1024).toFixed(0)} KB</div>
                       </div>
-                      <a href={attachment.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--or)", fontWeight: 700 }}>Open</a>
+                      <a href={resolveAssetUrl(attachment.url) ?? attachment.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--or)", fontWeight: 700 }}>Open</a>
                     </div>
                   ))}
                 </div>

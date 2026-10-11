@@ -9,23 +9,21 @@ import {
   Truck,
   Headphones,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  X,
+  Menu,
   Building2,
   Megaphone,
   Package,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { removeToken } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   { label: "Executive", href: "/dashboard-admin", icon: LayoutDashboard, exact: true },
   { label: "Users", href: "/dashboard-admin/users", icon: Users },
   { label: "Fleet", href: "/dashboard-admin/fleet", icon: Truck },
   { label: "Activity", href: "/dashboard-admin/activity", icon: Activity },
-  {label: "Marketing",href: "/dashboard-admin/marketing",icon: Megaphone},
-  { label: "Parts", href: "/dashboard-admin/parts", icon: Package },
+  { label: "Marketing", href: "/dashboard-admin/marketing", icon: Megaphone },
   { label: "Support", href: "/dashboard-admin/support", icon: Headphones },
 ];
 
@@ -38,9 +36,11 @@ type Props = {
   onToggle: () => void;
   open?: boolean;
   onClose?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 };
 
-export default function AdminSidebar({ collapsed, onToggle, open, onClose }: Props) {
+export default function AdminSidebar({ collapsed, onToggle, open, onClose, onMouseEnter, onMouseLeave }: Props) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
 
@@ -53,64 +53,69 @@ export default function AdminSidebar({ collapsed, onToggle, open, onClose }: Pro
   };
 
   return (
-    <aside className={`admin-sidebar${collapsed ? " collapsed" : ""}${open ? " open" : ""}`}>
-      <div style={{ padding: "20px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        {!collapsed && (
-          <Link href="/dashboard-admin" onClick={onClose} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>
-              Stratum<span style={{ color: "#E8692C" }}>IQ</span>
-              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, letterSpacing: "0.1em" }}>ADMIN</div>
-            </div>
-          </Link>
-        )}
-        {onClose ? (
-          <button className="admin-btn admin-btn-ghost" onClick={onClose} aria-label="Close menu">
-            <X size={16} />
-          </button>
-        ) : (
-          <button className="admin-btn admin-btn-ghost" onClick={onToggle} aria-label="Toggle sidebar">
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
-        )}
+    <aside
+      className={cn("admin-sidebar", collapsed && "collapsed", open && "open")}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <div className={cn("admin-toggle-row", collapsed && "admin-toggle-row--collapsed")}>
+        <button
+          className="admin-logo-collapse-btn"
+          onClick={onClose ?? onToggle}
+          aria-label={onClose ? "Close navigation" : collapsed ? "Expand menu" : "Collapse menu"}
+          title={onClose ? undefined : collapsed ? "Expand menu" : "Collapse menu"}
+        >
+          <Menu size={16} />
+        </button>
+        {!collapsed && <span className="admin-toggle-label">Platform</span>}
       </div>
 
-      <nav style={{ flex: 1, paddingTop: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", padding: "8px 20px", letterSpacing: "0.08em" }}>
-          {!collapsed && "PLATFORM"}
-        </div>
+      <nav className="admin-nav">
         {NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={onClose}
-            className={`admin-nav-item${isActive(item.href, item.exact) ? " active" : ""}`}
+            className={cn(
+              "admin-nav-item",
+              isActive(item.href, item.exact) && "active",
+              collapsed && "admin-nav-item--collapsed"
+            )}
             title={collapsed ? item.label : undefined}
           >
-            <item.icon size={18} />
+            <span className="admin-nav-item-icon"><item.icon size={18} /></span>
             {!collapsed && item.label}
           </Link>
         ))}
 
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", padding: "16px 20px 8px", letterSpacing: "0.08em" }}>
-          {!collapsed && "COMING SOON"}
-        </div>
+        {!collapsed && <div className="admin-nav-label">COMING SOON</div>}
         {PHASE2.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={onClose}
-            className={`admin-nav-item${isActive(item.href) ? " active" : ""}`}
+            className={cn(
+              "admin-nav-item",
+              isActive(item.href) && "active",
+              collapsed && "admin-nav-item--collapsed"
+            )}
             style={{ opacity: 0.6 }}
+            title={collapsed ? item.label : undefined}
           >
-            <item.icon size={18} />
+            <span className="admin-nav-item-icon"><item.icon size={18} /></span>
             {!collapsed && item.label}
           </Link>
         ))}
       </nav>
 
-      <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-        <button className="admin-nav-item" onClick={logout} style={{ width: "100%", border: "none", background: "none", cursor: "pointer" }}>
-          <LogOut size={18} />
+      <div className="admin-sidebar-bottom">
+        <button
+          className={cn("admin-nav-item", collapsed && "admin-nav-item--collapsed")}
+          onClick={logout}
+          style={{ width: "100%", border: "none", background: "none", cursor: "pointer" }}
+          title={collapsed ? "Sign out" : undefined}
+        >
+          <span className="admin-nav-item-icon"><LogOut size={18} /></span>
           {!collapsed && "Sign out"}
         </button>
       </div>

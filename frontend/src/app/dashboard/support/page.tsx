@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headphones, MessageSquareText, Plus, Send, Sparkles, Ticket, Clock3, ChevronRight, CheckCircle2, Bug, Wrench, HelpCircle, ShieldAlert, Settings } from "lucide-react";
-import KpiCard from "@/components/dashboard/common/KpiCard";
-import SupportComposerModal from "@/components/dashboard/support/SupportComposerModal";
+import { Headphones, Ticket, Bug, Wrench, Settings, FileEdit, Trash2, Truck, Package, CreditCard, Phone, Mail, MessageCircle, LifeBuoy } from "lucide-react";
+import SupportComposerModal, { loadDraft, clearDraft, type FormState as DraftFormState } from "@/components/dashboard/support/SupportComposerModal";
+import AIAssistant from "@/components/dashboard/AIAssistant";
 import { toast } from "sonner";
 import PageShell from "@/components/dashboard/layout/PageShell";
-import FilterBar from "@/components/dashboard/common/FilterBar";
 import GlassCard from "@/components/dashboard/ui/GlassCard";
 import Button from "@/components/dashboard/ui/Button";
 import Badge from "@/components/dashboard/ui/Badge";
@@ -17,10 +16,18 @@ import EmptyState from "@/components/dashboard/ui/EmptyState";
 import Skeleton from "@/components/dashboard/ui/Skeleton";
 import { ApiError, dashApi } from "@/lib/api/client";
 
+const SUPPORT_PHONE = "+1 (800) 555-0199";
+const SUPPORT_EMAIL = "support@stratumiq.com";
+
+const CHAT_SUGGESTIONS = ["Track my ticket", "Report an equipment issue", "Talk to a human", "Billing question"];
+const CHAT_SYSTEM_PROMPT = `You are the StratumIQ Support Assistant — helpful, concise, professional.
+You help customers with fleet, equipment, service, orders, and billing questions, and guide them to raise a support ticket when you can't resolve the issue yourself.
+Keep responses concise (2–4 sentences). If the user needs a human, tell them to use "Raise an issue" to open a ticket.`;
+
 type SupportTicket = {
   id: number;
   ticketNumber: string;
-  type: "TICKET" | "FEEDBACK";
+  type: "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
   subject: string;
   description: string | null;
   status: "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "WAITING_CUSTOMER" | "RESOLVED";
@@ -38,14 +45,10 @@ type SupportTicket = {
 };
 
 type CreateTicketPayload = {
-  type: "TICKET" | "FEEDBACK";
+  type: "FLEET" | "EQUIPMENT" | "SERVICE" | "ORDER" | "BILLING_ACCOUNT" | "PLATFORM" | "OTHER";
   subject: string;
   description: string;
   priority: "LOW" | "MEDIUM" | "HIGH";
-};
-
-type ReplyPayload = {
-  body: string;
 };
 
 const statusConfig: Record<SupportTicket["status"], { label: string; variant: "default" | "warning" | "success" | "danger" | "info" | "orange" }> = {
@@ -54,12 +57,6 @@ const statusConfig: Record<SupportTicket["status"], { label: string; variant: "d
   IN_PROGRESS: { label: "In progress", variant: "orange" },
   WAITING_CUSTOMER: { label: "Waiting customer", variant: "default" },
   RESOLVED: { label: "Resolved", variant: "success" },
-};
-
-const priorityConfig: Record<SupportTicket["priority"], { label: string; variant: "default" | "warning" | "success" | "danger" | "info" | "orange" }> = {
-  LOW: { label: "Low", variant: "default" },
-  MEDIUM: { label: "Medium", variant: "warning" },
-  HIGH: { label: "High", variant: "danger" },
 };
 
 function formatDate(value?: string) {
@@ -77,13 +74,28 @@ export default function SupportPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showComposer, setShowComposer] = useState(false);
-  const [reply, setReply] = useState("");
+  const [showChat, setShowChat] = useState(false);
+  const [draft, setDraft] = useState<DraftFormState | null>(null);
+
+  useEffect(() => {
+    const refreshDraft = () => setDraft(loadDraft());
+    refreshDraft();
+    window.addEventListener("support-draft-changed", refreshDraft);
+    window.addEventListener("storage", refreshDraft);
+    return () => {
+      window.removeEventListener("support-draft-changed", refreshDraft);
+      window.removeEventListener("storage", refreshDraft);
+    };
+  }, []);
+
+  const handleDeleteDraft = () => {
+    clearDraft();
+    setDraft(null);
+  };
   const [form, setForm] = useState<CreateTicketPayload>({
-    type: "TICKET",
+    type: "OTHER",
     subject: "",
     description: "",
     priority: "MEDIUM",
@@ -92,23 +104,15 @@ export default function SupportPage() {
   useEffect(() => {
     const requestedType = searchParams.get("type")?.toLowerCase();
     if (requestedType === "feedback") {
-      setForm((prev) => ({ ...prev, type: "FEEDBACK" }));
+      setForm((prev) => ({ ...prev, type: "OTHER" }));
     } else if (requestedType === "manual") {
-      setForm((prev) => ({ ...prev, type: "TICKET" }));
+      setForm((prev) => ({ ...prev, type: "SERVICE" }));
     }
   }, [searchParams]);
 
-  const { data: tickets = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["dashboard", "support", "tickets", search, statusFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") params.set("status", statusFilter);
-      if (search.trim()) params.set("search", search.trim());
-      params.set("page", "1");
-      params.set("limit", "10");
-      const suffix = params.toString() ? `?${params.toString()}` : "";
-      return dashApi<SupportTicket[]>(`/support/tickets${suffix}`);
-    },
+  const { data: tickets = [], isLoading } = useQuery({
+    queryKey: ["dashboard", "support", "tickets"],
+    queryFn: () => dashApi<SupportTicket[]>("/support/tickets?page=1&limit=5"),
   });
 
   useEffect(() => {
@@ -120,49 +124,19 @@ export default function SupportPage() {
     }
   }, [tickets, selectedId]);
 
-  const selectedTicket = useMemo(
-    () => tickets.find((ticket) => ticket.id === selectedId) ?? null,
-    [selectedId, tickets],
-  );
-
-  const { data: detailTicket, isLoading: detailLoading } = useQuery({
-    queryKey: ["dashboard", "support", "ticket", selectedId],
-    queryFn: () => dashApi<SupportTicket>(`/support/tickets/${selectedId}`),
-    enabled: Boolean(selectedId),
-    staleTime: 10000,
-  });
-
   const createTicketMutation = useMutation({
     mutationFn: (payload: CreateTicketPayload) =>
       dashApi<SupportTicket>("/support/tickets", { method: "POST", body: payload }),
     onSuccess: (ticket) => {
       toast.success("Request submitted successfully");
       setShowComposer(false);
-      setForm({ type: "TICKET", subject: "", description: "", priority: "MEDIUM" });
+      setForm({ type: "OTHER", subject: "", description: "", priority: "MEDIUM" });
       setSelectedId(ticket.id);
       queryClient.invalidateQueries({ queryKey: ["dashboard", "support", "tickets"] });
       router.replace("/dashboard/support");
     },
     onError: (error) => {
       const message = error instanceof ApiError ? error.message : "We couldn’t create your request";
-      toast.error(message);
-    },
-  });
-
-  const addReplyMutation = useMutation({
-    mutationFn: (payload: ReplyPayload) =>
-      dashApi<SupportTicket>(`/support/tickets/${selectedId}/notes`, {
-        method: "POST",
-        body: payload,
-      }),
-    onSuccess: () => {
-      toast.success("Reply sent");
-      setReply("");
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "support", "ticket", selectedId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "support", "tickets"] });
-    },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "We couldn’t send that reply";
       toast.error(message);
     },
   });
@@ -176,64 +150,96 @@ export default function SupportPage() {
     createTicketMutation.mutate(form);
   };
 
-  const handleReply = () => {
-    if (!reply.trim() || !selectedId) return;
-    addReplyMutation.mutate({ body: reply.trim() });
-  };
-
-  const summary = useMemo(() => {
-    const resolved = tickets.filter((ticket) => ticket.status === "RESOLVED").length;
-    const open = tickets.filter((ticket) => ticket.status !== "RESOLVED").length;
-    return { resolved, open };
-  }, [tickets]);
-
   return (
     <>
       <PageShell
         title="Support Center"
-        description="Manage and track all your support requests."
-        actions={
-          <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={() => setShowComposer(true)}>
-            New request
-          </Button>
-        }
+        description="We're here to help. Choose how you'd like to reach us."
       >
-        <div style={{ display: "grid", gap: 12 }}>
-          <div className="d-kpi-grid" style={{ marginBottom: 6 }}>
-            <KpiCard label="Open" value={tickets.filter((t) => t.status !== "RESOLVED").length} icon={<Ticket size={18} />} color="#E8692C" />
-            <KpiCard label="Assigned" value={tickets.filter((t) => t.status === "ASSIGNED").length} icon={<CheckCircle2 size={18} />} color="#0EA5A5" />
-            <KpiCard label="Waiting" value={tickets.filter((t) => t.status === "WAITING_CUSTOMER").length} icon={<Clock3 size={18} />} color="#F59E0B" />
-            <KpiCard label="Resolved" value={tickets.filter((t) => t.status === "RESOLVED").length} icon={<Ticket size={18} />} color="#10B981" />
+        <div style={{ display: "grid", gap: 24 }}>
+          <div className="d-support-contact-grid">
+            <a href={`tel:${SUPPORT_PHONE.replace(/[^+\d]/g, "")}`} className="d-support-contact-tile">
+              <span className="d-support-contact-icon" style={{ color: "#0EA5A5", background: "#0EA5A514", borderColor: "#0EA5A528" }}>
+                <Phone size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Call Us</div>
+                <div className="d-support-contact-sub">{SUPPORT_PHONE}</div>
+              </div>
+            </a>
+
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="d-support-contact-tile">
+              <span className="d-support-contact-icon" style={{ color: "#2563EB", background: "#2563EB14", borderColor: "#2563EB28" }}>
+                <Mail size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Email Us</div>
+                <div className="d-support-contact-sub">{SUPPORT_EMAIL}</div>
+              </div>
+            </a>
+
+            <button type="button" className="d-support-contact-tile" onClick={() => setShowComposer(true)}>
+              <span className="d-support-contact-icon" style={{ color: "var(--or)", background: "var(--or-10)", borderColor: "var(--or-25)" }}>
+                <LifeBuoy size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Raise an Issue</div>
+                <div className="d-support-contact-sub">Open a support ticket</div>
+              </div>
+            </button>
+
+            <button type="button" className="d-support-contact-tile" onClick={() => setShowChat(true)}>
+              <span className="d-support-contact-icon" style={{ color: "#16A34A", background: "#16A34A14", borderColor: "#16A34A28" }}>
+                <MessageCircle size={20} />
+              </span>
+              <div>
+                <div className="d-support-contact-title">Live Chat</div>
+                <div className="d-support-contact-sub">Chat with our assistant</div>
+              </div>
+            </button>
           </div>
 
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)" }}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", margin: 0 }}>Your recent requests</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowComposer(true)}>
+                New request
+              </Button>
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <FilterBar
-                search={search}
-                onSearchChange={(value) => setSearch(value)}
-                searchPlaceholder="Search tickets or subjects"
-                selects={[
-                  {
-                    key: "status",
-                    value: statusFilter,
-                    options: [
-                      { value: "all", label: "All statuses" },
-                      { value: "OPEN", label: "Open" },
-                      { value: "ASSIGNED", label: "Assigned" },
-                      { value: "IN_PROGRESS", label: "In progress" },
-                      { value: "WAITING_CUSTOMER", label: "Waiting customer" },
-                      { value: "RESOLVED", label: "Resolved" },
-                    ],
-                    onChange: setStatusFilter,
-                    width: 190,
-                  },
-                ]}
-                trailing={
-                  <Button variant="outline" size="sm" icon={<Headphones size={14} />} onClick={() => setShowComposer(true)}>
-                    New request
-                  </Button>
-                }
-              />
+              {draft ? (
+                <GlassCard padding="md" className="d-support-draft-card">
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <span style={{ color: "var(--or)", display: "inline-flex", marginTop: 2 }}>
+                        <FileEdit size={16} />
+                      </span>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--or)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                            Draft
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>
+                          {draft.subject.trim() || "Untitled draft"}
+                        </div>
+                        <p style={{ margin: "6px 0 0", color: "var(--t3)", fontSize: 13, lineHeight: 1.5 }}>
+                          {draft.description.trim() || "No description yet."}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <Button size="sm" variant="outline" onClick={() => setShowComposer(true)}>
+                        Continue editing
+                      </Button>
+                      <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={handleDeleteDraft}>
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </GlassCard>
+              ) : null}
 
               {isLoading ? (
                 <div style={{ display: "grid", gap: 12 }}>
@@ -253,22 +259,20 @@ export default function SupportPage() {
                   action={{ label: "Create a request", onClick: () => setShowComposer(true) }}
                 />
               ) : (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 8 }}>
                   {tickets.map((ticket) => {
                     const status = statusConfig[ticket.status];
-                    const priority = priorityConfig[ticket.priority];
                     const isActive = ticket.id === selectedId;
                     const issueType = (ticket as any).issueType as string | undefined;
                     const getTicketIcon = () => {
                       const key = (issueType || ticket.type || "").toString().toLowerCase();
-                      if (key.includes("bug")) return <Bug size={15} />;
-                      if (key.includes("feature")) return <Sparkles size={15} />;
-                      if (key.includes("question") || key.includes("help")) return <HelpCircle size={15} />;
-                      if (key.includes("equipment") || key.includes("equipment_issue") || key.includes("equipment issue") || key.includes("asset")) return <Settings size={15} />;
-                      if (key.includes("maintenance")) return <Wrench size={15} />;
-                      if (key.includes("safety")) return <ShieldAlert size={15} />;
-                      if (ticket.type === "FEEDBACK") return <Sparkles size={15} />;
-                      return <Ticket size={15} />;
+                      if (key.includes("fleet")) return <Truck size={14} />;
+                      if (key.includes("equipment")) return <Settings size={14} />;
+                      if (key.includes("service")) return <Wrench size={14} />;
+                      if (key.includes("order")) return <Package size={14} />;
+                      if (key.includes("billing") || key.includes("account")) return <CreditCard size={14} />;
+                      if (key.includes("platform")) return <Bug size={14} />;
+                      return <Ticket size={14} />;
                     };
                     return (
                       <motion.button
@@ -278,131 +282,48 @@ export default function SupportPage() {
                           setSelectedId(ticket.id);
                           router.push(`/dashboard/support/${ticket.id}`);
                         }}
-                        className={`d-support-ticket-card${isActive ? " d-support-ticket-card--active" : ""}`}
-                        whileHover={{ y: -2, scale: 1.005 }}
-                        transition={{ duration: 0.16 }}
+                        className={`d-support-ticket-row${isActive ? " d-support-ticket-row--active" : ""}`}
+                        whileHover={{ x: 2 }}
+                        transition={{ duration: 0.14 }}
                       >
-                        <div className="d-support-ticket-card-head">
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ color: "var(--or)", display: "inline-flex" }}>{getTicketIcon()}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t3)" }}>{ticket.ticketNumber}</span>
-                          </div>
-                          <Badge variant={status.variant} size="md">
-                            {status.label}
-                          </Badge>
-                        </div>
-                        <div style={{ marginTop: 10, fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>{ticket.subject}</div>
-                        <p style={{ margin: "8px 0 8px", color: "var(--t3)", fontSize: 13, lineHeight: 1.55 }}>
-                          {ticket.description || "No description provided yet."}
-                        </p>
-                        <div className="d-support-ticket-card-meta">
-                          <Badge variant={priority.variant} size="sm">
-                            {priority.label} priority
-                          </Badge>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <Clock3 size={12} /> {formatDate(ticket.createdAt)}
-                          </span>
-                          <span className="d-support-ticket-card-open">Open thread →</span>
-                        </div>
+                        <span className="d-support-ticket-row-icon">{getTicketIcon()}</span>
+                        <span className="d-support-ticket-row-id">{ticket.ticketNumber}</span>
+                        <span className="d-support-ticket-row-subject">{ticket.subject}</span>
+                        <span className="d-support-ticket-row-date">{formatDate(ticket.createdAt)}</span>
+                        <Badge variant={status.variant} size="sm">
+                          {status.label}
+                        </Badge>
                       </motion.button>
                     );
                   })}
                 </div>
               )}
             </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <GlassCard padding="lg">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--t3)" }}>Conversation</div>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, margin: "4px 0 0", color: "var(--t1)" }}>
-                      {selectedTicket ? selectedTicket.subject : "Select a request"}
-                    </h3>
-                  </div>
-                  {selectedTicket && (
-                    <Badge variant={statusConfig[selectedTicket.status].variant} size="md">
-                      {statusConfig[selectedTicket.status].label}
-                    </Badge>
-                  )}
-                </div>
-
-                {!selectedTicket ? (
-                  <div style={{ marginTop: 18 }}>
-                    <EmptyState icon={MessageSquareText} title="No conversation selected" description="Pick a ticket from the list to view the full thread." />
-                  </div>
-                ) : detailLoading ? (
-                  <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
-                    <Skeleton height={54} />
-                    <Skeleton height={54} />
-                    <Skeleton height={54} />
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
-                      <div className="d-support-thread-card">
-                        <div style={{ fontSize: 13, color: "var(--t3)" }}>Request details</div>
-                        <div style={{ marginTop: 6, lineHeight: 1.7, color: "var(--t2)", fontSize: 14 }}>
-                          {detailTicket?.description || "No additional context has been shared yet."}
-                        </div>
-                      </div>
-                      <div className="d-support-thread-card d-support-thread-card--soft">
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                          <MessageSquareText size={16} color="var(--or)" />
-                          <span style={{ fontWeight: 700, color: "var(--t1)" }}>Timeline</span>
-                        </div>
-                        {(!detailTicket?.notes || detailTicket.notes.length === 0) ? (
-                          <div style={{ color: "var(--t3)", fontSize: 13 }}>No updates yet. We’ll show the latest notes here.</div>
-                        ) : (
-                          <div className="d-support-thread-list">
-                            {detailTicket.notes.map((note) => (
-                              <div key={note.id} className="d-support-thread-item">
-                                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                                  <span style={{ fontSize: 12, color: "var(--t3)" }}>{note.isInternal ? "Internal note" : "Customer update"}</span>
-                                  <span style={{ fontSize: 12, color: "var(--t3)" }}>{formatDate(note.createdAt)}</span>
-                                </div>
-                                <div style={{ marginTop: 6, fontSize: 13, color: "var(--t2)", lineHeight: 1.6 }}>{note.body}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="d-support-update-box">
-                      <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--t3)", marginBottom: 8 }} htmlFor="reply">
-                        Add an update
-                      </label>
-                      <textarea
-                        id="reply"
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                        rows={4}
-                        className="d-support-update-textarea"
-                        placeholder="Share an update for the support team…"
-                      />
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                        <Button size="sm" icon={<Send size={14} />} loading={addReplyMutation.isPending} onClick={handleReply}>
-                          Send update
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </GlassCard>
-            </div>
           </div>
         </div>
       </PageShell>
 
+      {showChat ? (
+        <div style={{ position: "fixed", bottom: 96, right: 24, zIndex: 60 }}>
+          <AIAssistant
+            floating
+            title="Live Support Chat"
+            welcomeMessage="Hi! I'm the StratumIQ support assistant. Ask me about your fleet, equipment, orders, or billing — or I can point you to a human."
+            systemPrompt={CHAT_SYSTEM_PROMPT}
+            suggestions={CHAT_SUGGESTIONS}
+            onClose={() => setShowChat(false)}
+          />
+        </div>
+      ) : null}
+
       <motion.button
         type="button"
-        onClick={() => setShowComposer(true)}
+        onClick={() => setShowChat((open) => !open)}
         className="d-support-fab"
         whileHover={{ y: -2, scale: 1.04, boxShadow: "0 20px 40px rgba(232,105,44,0.32)" }}
         whileTap={{ scale: 0.96 }}
-        aria-label="Support"
-        title="Support"
+        aria-label="Live chat"
+        title="Live chat"
       >
         <Headphones size={24} />
       </motion.button>

@@ -4,10 +4,87 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Clock3, MessageSquareText, ShieldCheck, UserCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, Download, ExternalLink, MessageSquareText, ShieldCheck, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/services/admin/adminClient";
+import { resolveAssetUrl } from "@/lib/constants";
 import type { AdminTicket } from "@/types/admin";
+
+type ParsedAttachment = { name: string; url: string };
+
+function parseAttachmentsFromText(raw?: string | null): { text: string; attachments: ParsedAttachment[] } {
+  if (!raw) return { text: "", attachments: [] };
+  const marker = /\n?Attachments:\n?/;
+  const match = raw.match(marker);
+  if (!match || match.index === undefined) return { text: raw, attachments: [] };
+
+  const text = raw.slice(0, match.index).trim();
+  const block = raw.slice(match.index + match[0].length);
+  const attachments = Array.from(block.matchAll(/^-\s*(.+?):\s*(\S+)\s*$/gm)).map((m) => ({
+    name: m[1].trim(),
+    url: m[2].trim(),
+  }));
+  return { text, attachments };
+}
+
+async function forceDownload(href: string, name: string) {
+  try {
+    const res = await fetch(href);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(href, "_blank", "noopener,noreferrer");
+  }
+}
+
+function AttachmentList({ attachments }: { attachments: ParsedAttachment[] }) {
+  if (!attachments.length) return null;
+  return (
+    <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+      {attachments.map((attachment, idx) => {
+        const href = resolveAssetUrl(attachment.url) ?? attachment.url;
+        return (
+          <div
+            key={`${attachment.url}-${idx}`}
+            style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+              borderRadius: 10, border: "1px solid var(--a-border, rgba(255,255,255,0.1))",
+              background: "var(--a-surface-2, rgba(255,255,255,0.03))",
+            }}
+          >
+            <span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {attachment.name}
+            </span>
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="admin-btn admin-btn-ghost"
+              style={{ padding: "5px 10px", fontSize: 12 }}
+            >
+              <ExternalLink size={12} /> View
+            </a>
+            <button
+              type="button"
+              className="admin-btn admin-btn-ghost"
+              style={{ padding: "5px 10px", fontSize: 12 }}
+              onClick={() => forceDownload(href, attachment.name)}
+            >
+              <Download size={12} /> Download
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   OPEN: { label: "Open", className: "admin-badge-open" },
@@ -37,6 +114,7 @@ export default function AdminSupportDetailPage() {
   const ticketId = Number(id);
   const qc = useQueryClient();
   const [note, setNote] = useState("");
+  const [internalOnly, setInternalOnly] = useState(false);
 
   const { data: ticket, isLoading } = useQuery<AdminTicket>({
     queryKey: ["admin", "ticket", ticketId],
@@ -64,9 +142,9 @@ export default function AdminSupportDetailPage() {
   });
 
   const noteMutation = useMutation({
-    mutationFn: () => adminApi.addTicketNote(ticketId, { body: note, isInternal: true }),
+    mutationFn: () => adminApi.addTicketNote(ticketId, { body: note, isInternal: internalOnly }),
     onSuccess: () => {
-      toast.success("Note added");
+      toast.success(internalOnly ? "Internal note added" : "Reply sent to customer");
       setNote("");
       qc.invalidateQueries({ queryKey: ["admin", "ticket", ticketId] });
       qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
@@ -81,6 +159,13 @@ export default function AdminSupportDetailPage() {
   const statusMeta = STATUS_META[ticket.status] ?? STATUS_META.OPEN;
   const priorityMeta = PRIORITY_META[ticket.priority] ?? PRIORITY_META.MEDIUM;
   const notes = ticket.notes ?? [];
+
+  const { text: descriptionText, attachments: descriptionAttachments } = parseAttachmentsFromText(ticket.description);
+  const parsedNotes = notes.map((noteItem) => ({
+    ...noteItem,
+    ...parseAttachmentsFromText(noteItem.body),
+  }));
+  const allAttachments = [...descriptionAttachments, ...parsedNotes.flatMap((n) => n.attachments)];
 
   return (
     <div>
@@ -111,24 +196,31 @@ export default function AdminSupportDetailPage() {
             <div className="admin-support-section-title">
               <MessageSquareText size={14} /> Conversation
             </div>
-            <p style={{ margin: 0, color: "var(--a-t2)", lineHeight: 1.7 }}>{ticket.description || "No description provided."}</p>
+            <p style={{ margin: 0, color: "var(--a-t2)", lineHeight: 1.7 }}>{descriptionText || "No description provided."}</p>
+            <AttachmentList attachments={descriptionAttachments} />
           </div>
 
           <div className="admin-glass" style={{ padding: 20 }}>
             <div className="admin-support-section-title">
               <ShieldCheck size={14} /> Replies
             </div>
-            {notes.length === 0 ? (
+            {parsedNotes.length === 0 ? (
               <div className="admin-empty" style={{ padding: 16 }}>No replies recorded yet.</div>
             ) : (
               <div className="admin-support-thread">
-                {notes.map((noteItem) => (
+                {parsedNotes.map((noteItem) => (
                   <div key={noteItem.id} className="admin-support-thread-item">
                     <div className="admin-support-thread-meta">
                       <strong>{noteItem.authorName}</strong>
-                      <span>{formatDate(noteItem.createdAt)}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {noteItem.isInternal && (
+                          <span className="admin-badge admin-badge-pending" style={{ fontSize: 10 }}>Internal</span>
+                        )}
+                        {formatDate(noteItem.createdAt)}
+                      </span>
                     </div>
-                    <div>{noteItem.body}</div>
+                    {noteItem.text && <div>{noteItem.text}</div>}
+                    <AttachmentList attachments={noteItem.attachments} />
                   </div>
                 ))}
               </div>
@@ -137,18 +229,27 @@ export default function AdminSupportDetailPage() {
               <textarea
                 className="admin-input"
                 rows={3}
-                placeholder="Add an internal note or next step…"
+                placeholder={internalOnly ? "Add an internal note (only staff can see this)…" : "Reply to the customer…"}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
-              <button
-                className="admin-btn admin-btn-primary"
-                style={{ marginTop: 8 }}
-                disabled={!note.trim() || noteMutation.isPending}
-                onClick={() => noteMutation.mutate()}
-              >
-                Add note
-              </button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, flexWrap: "wrap", gap: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--a-t3)", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={internalOnly}
+                    onChange={(e) => setInternalOnly(e.target.checked)}
+                  />
+                  Internal note only (not visible to customer)
+                </label>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  disabled={!note.trim() || noteMutation.isPending}
+                  onClick={() => noteMutation.mutate()}
+                >
+                  {noteMutation.isPending ? "Sending…" : internalOnly ? "Add internal note" : "Send reply"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -156,7 +257,11 @@ export default function AdminSupportDetailPage() {
             <div className="admin-support-section-title">
               <Clock3 size={14} /> Attachments
             </div>
-            <div className="admin-empty" style={{ padding: 16 }}>Attachments will appear here when the upload flow is enabled.</div>
+            {allAttachments.length === 0 ? (
+              <div className="admin-empty" style={{ padding: 16 }}>No attachments on this ticket.</div>
+            ) : (
+              <AttachmentList attachments={allAttachments} />
+            )}
           </div>
         </div>
 
@@ -215,7 +320,7 @@ export default function AdminSupportDetailPage() {
               </div>
               <div>
                 <div className="admin-support-label">Latest update</div>
-                <div>{notes[0]?.body || "No thread updates yet"}</div>
+                <div>{parsedNotes[parsedNotes.length - 1]?.text || "No thread updates yet"}</div>
               </div>
             </div>
           </div>

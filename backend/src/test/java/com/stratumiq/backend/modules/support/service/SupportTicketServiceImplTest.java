@@ -38,10 +38,11 @@ class SupportTicketServiceImplTest {
     @InjectMocks
     private SupportTicketServiceImpl service;
 
+    @SuppressWarnings("null")
     @Test
     void createUsesUnifiedTicketNumberPrefix() {
         CreateSupportTicketRequest request = new CreateSupportTicketRequest();
-        request.setType(SupportType.TICKET);
+        request.setType(SupportType.OTHER);
         request.setSubject("Login issue");
         request.setDescription("I cannot sign in");
         request.setPriority(TicketPriority.HIGH);
@@ -65,6 +66,7 @@ class SupportTicketServiceImplTest {
         assertThat(response.getTicketNumber()).endsWith("-0001");
     }
 
+    @SuppressWarnings("null")
     @Test
     void addNoteCreatesPublicNoteForOwnedTicket() {
         SupportTicket ticket = SupportTicket.builder()
@@ -75,7 +77,7 @@ class SupportTicketServiceImplTest {
             .description("Cannot sign in")
             .status(TicketStatus.OPEN)
             .priority(TicketPriority.HIGH)
-            .type(SupportType.TICKET)
+            .type(SupportType.OTHER)
             .build();
 
         CreateSupportTicketNoteRequest request = new CreateSupportTicketNoteRequest();

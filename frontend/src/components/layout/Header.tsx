@@ -37,31 +37,28 @@ export default function Header() {
   };
 
   return (
-    <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
-      <Container>
-        <div className="site-header-inner">
-          <Link href="/" className="site-logo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-icon.png" alt="Stratum IQ" />
-          </Link>
+    <>
+      <header
+        style={{
+          position:          "fixed",
+          top: 0, left: 0,
+          width:             "100%",
+          zIndex:            50,
+          transition:        "all 0.3s",
+          background:        scrolled ? "rgba(3,9,20,0.88)" : "transparent",
+          backdropFilter:    scrolled ? "blur(20px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
+          borderBottom:      scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
+        }}
+      >
+        <Container>
+          <div style={{ height: 76, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
 
-          {!isAuthPage && (
-            <nav className="site-nav" aria-label="Primary">
-              {NAV_ITEMS.map(({ label, href }) => {
-                const isActive = active === href;
-                return (
-                  <button
-                    key={label}
-                    onClick={() => scrollTo(href)}
-                    className={`site-nav-link${isActive ? " is-active" : ""}`}
-                  >
-                    {label}
-                    <span className="site-nav-link-bar" />
-                  </button>
-                );
-              })}
-            </nav>
-          )}
+            {/* Logo */}
+            <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-icon.png" alt="Stratum IQ" style={{ height: 104, width: 154 }} />
+            </Link>
 
           <div className="site-header-actions">
             <Button href="/auth?mode=login" variant="ghost" size="md" className="site-header-ghost">
@@ -71,19 +68,112 @@ export default function Header() {
               Get Started
             </Button>
             {!isAuthPage && (
-              <button
-                onClick={() => setMobileOpen((o) => !o)}
-                className="site-menu-btn"
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
-                aria-expanded={mobileOpen}
-              >
-                {mobileOpen ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/></svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round"/></svg>
-                )}
-              </button>
+              <nav style={{ display: "flex", alignItems: "center", gap: 36, marginLeft: "clamp(24px,4vw,64px)" }}
+                className="hidden-mobile">
+                {NAV_ITEMS.map(({ label, href }) => {
+                  const isActive = active === href;
+                  return (
+                    <button key={label} onClick={() => scrollTo(href)}
+                      style={{
+                        position:       "relative",
+                        background:     "none",
+                        border:         "none",
+                        cursor:         "pointer",
+                        padding:        "4px 0",
+                        fontSize:       15.5,
+                        fontWeight:     600,
+                        letterSpacing:  "0.01em",
+                        color:          isActive ? "#fff" : "rgba(255,255,255,0.55)",
+                        transition:     "color 0.2s",
+                        fontFamily:     "inherit",
+                      }}
+                      onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = "#fff")}
+                      onMouseOut={e => {
+                        if (!isActive) (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)";
+                      }}
+                    >
+                      {label}
+                      <span style={{
+                        position:   "absolute",
+                        bottom:     -2, left: 0,
+                        height:     1.5,
+                        width:      isActive ? "100%" : "0%",
+                        background: O,
+                        borderRadius: 99,
+                        transition: "width 0.25s",
+                      }} />
+                    </button>
+                  );
+                })}
+              </nav>
             )}
+
+            {/* Auth Buttons — both point to /auth with ?mode= */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
+              {/* Sign In */}
+              <Link href="/auth?mode=login" style={{
+                display:        "inline-flex",
+                alignItems:     "center",
+                height:         40,
+                padding:        "0 20px",
+                borderRadius:   8,
+                fontSize:       14,
+                fontWeight:     600,
+                textDecoration: "none",
+                color:          "rgba(255,255,255,0.75)",
+                background:     "transparent",
+                border:         "1px solid rgba(255,255,255,0.15)",
+                transition:     "all 0.18s",
+              }}
+                onMouseOver={e => {
+                  (e.currentTarget as HTMLElement).style.background  = "rgba(232,105,44,0.08)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(232,105,44,0.5)";
+                  (e.currentTarget as HTMLElement).style.color       = "#fff";
+                }}
+                onMouseOut={e => {
+                  (e.currentTarget as HTMLElement).style.background  = "transparent";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.15)";
+                  (e.currentTarget as HTMLElement).style.color       = "rgba(255,255,255,0.75)";
+                }}
+              >Sign In</Link>
+
+              {/* Get Started */}
+              <Link href="/auth?mode=register" style={{
+                display:        "inline-flex",
+                alignItems:     "center",
+                height:         40,
+                padding:        "0 20px",
+                borderRadius:   8,
+                fontSize:       14,
+                fontWeight:     600,
+                textDecoration: "none",
+                color:          "#fff",
+                background:     O,
+                border:         "none",
+                transition:     "all 0.18s",
+                boxShadow:      `0 0 18px ${BRAND.orangeGlow}`,
+              }}
+                onMouseOver={e => {
+                  (e.currentTarget as HTMLElement).style.background  = BRAND.orangeHover;
+                  (e.currentTarget as HTMLElement).style.boxShadow   = "0 0 24px rgba(232,105,44,0.55)";
+                }}
+                onMouseOut={e => {
+                  (e.currentTarget as HTMLElement).style.background  = O;
+                  (e.currentTarget as HTMLElement).style.boxShadow   = `0 0 18px ${BRAND.orangeGlow}`;
+                }}
+              >Get Started</Link>
+
+              {/* Mobile hamburger */}
+              {!isAuthPage && (
+                <button onClick={() => setMobileOpen(o => !o)} className="show-mobile"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", padding: 4, display: "none" }}>
+                  {mobileOpen
+                    ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/></svg>
+                    : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round"/></svg>
+                  }
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Container>

@@ -1,5 +1,6 @@
 package com.stratumiq.backend.common.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -61,6 +62,24 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(500)
             .body(Map.of("error", "Database constraint violation"));
+    }
+
+    // Handles malformed JSON bodies, including invalid enum values (e.g. unsupported "type")
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause instanceof InvalidFormatException ife && !ife.getPath().isEmpty()) {
+            String field = ife.getPath().get(ife.getPath().size() - 1).getFieldName();
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Validation failed",
+                "code", "VALIDATION_ERROR",
+                "fields", Map.of(field != null ? field : "body", "Invalid value: " + ife.getValue())
+            ));
+        }
+        return ResponseEntity.badRequest().body(Map.of(
+            "error", "Malformed request body",
+            "code", "VALIDATION_ERROR"
+        ));
     }
 
     // Handles type mismatches in path/query parameters (e.g., ?id=abc when int expected)

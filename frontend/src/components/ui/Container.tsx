@@ -1,6 +1,6 @@
 export default function Container({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 ${className ?? ""}`}>
+    <div className={`w-full px-6 sm:px-10 lg:px-16 ${className ?? ""}`}>
       {children}
     </div>
   );

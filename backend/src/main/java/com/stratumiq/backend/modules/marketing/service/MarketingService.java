@@ -390,8 +390,11 @@ public class MarketingService {
         if (req.getIsPinned()     != null) content.setIsPinned(req.getIsPinned());
         if (req.getPriority()     != null) content.setPriority(req.getPriority());
         if (req.getTags()         != null) content.setTags(req.getTags());
-        if (req.getStartsAt()     != null) content.setStartsAt(req.getStartsAt());
-        if (req.getEndsAt()       != null) content.setEndsAt(req.getEndsAt());
+        // Always overwrite (not guarded by != null): a full update must be able to
+        // clear a stale schedule window, otherwise a previously-set startsAt/endsAt
+        // can keep blocking dashboard visibility even after status flips to PUBLISHED.
+        content.setStartsAt(req.getStartsAt());
+        content.setEndsAt(req.getEndsAt());
         if (req.getSortOrder()    != null) content.setSortOrder(req.getSortOrder());
         if (req.getIsActive()     != null && req.getStatus() == null) {
             content.setStatus(req.getIsActive()

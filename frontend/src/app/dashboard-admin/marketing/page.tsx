@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import {
   Plus, Search, Pencil, Trash2, Eye, Archive, Copy, RotateCcw, Pin, 
   ChevronLeft, ChevronRight, X, TrendingUp, FileText, Eye as EyeIcon,
@@ -98,8 +97,6 @@ export default function AdminMarketingPage() {
   const [editItem, setEditItem] = useState<MarketingItem | null>(null);
   const [previewItem, setPreviewItem] = useState<MarketingItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MarketingItem | null>(null);
-  const [confirmPublish, setConfirmPublish] = useState<MarketingFormData | null>(null);
-  const [pendingSave, setPendingSave] = useState<{ data: MarketingFormData; isCreate: boolean; id?: number } | null>(null);
 
   // Main query
   const { data, isLoading, error } = useQuery({
@@ -167,14 +164,14 @@ export default function AdminMarketingPage() {
   };
 
   const saveMutation = useMutation({
-    mutationFn: async ({ data, isCreate, id }: { data: MarketingFormData; isCreate: boolean; id?: number }) => {
+    mutationFn: async ({ data, isCreate, id }: { data: MarketingFormData; isCreate: boolean; id?: number; published: boolean }) => {
       const payload = buildPayload(data);
       if (isCreate) return createMarketing(payload);
       return updateMarketing(id!, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       invalidate();
-      toast.success("Saved successfully");
+      toast.success(variables.published ? "Published successfully" : "Saved successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to save"),
   });
@@ -198,27 +195,8 @@ export default function AdminMarketingPage() {
     isActive: data.status === "PUBLISHED",
   });
 
-  const handleSave = async (data: MarketingFormData) => {
-    if (data.status === "PUBLISHED" && !editItem) {
-      setPendingSave({ data, isCreate: true });
-      setConfirmPublish(data);
-      return;
-    }
-    if (data.status === "PUBLISHED" && editItem) {
-      setPendingSave({ data, isCreate: false, id: editItem.id });
-      setConfirmPublish(data);
-      return;
-    }
-    await saveMutation.mutateAsync({ data, isCreate: !editItem, id: editItem?.id });
-    setShowCreate(false);
-    setEditItem(null);
-  };
-
-  const confirmPublishSave = async () => {
-    if (!pendingSave) return;
-    await saveMutation.mutateAsync(pendingSave);
-    setConfirmPublish(null);
-    setPendingSave(null);
+  const handleSave = async (data: MarketingFormData, published: boolean) => {
+    await saveMutation.mutateAsync({ data, isCreate: !editItem, id: editItem?.id, published });
     setShowCreate(false);
     setEditItem(null);
   };
@@ -268,19 +246,6 @@ export default function AdminMarketingPage() {
           confirmColor="#dc2626"
           onConfirm={handleDelete}
           onCancel={() => setConfirmDelete(null)}
-        />
-      )}
-      {confirmPublish && (
-        <ConfirmDialog
-          title="Publish Content"
-          message="Publish this announcement? It will appear on the user dashboard when active."
-          confirmLabel="Publish"
-          confirmColor="#16a34a"
-          onConfirm={confirmPublishSave}
-          onCancel={() => {
-            setConfirmPublish(null);
-            setPendingSave(null);
-          }}
         />
       )}
 
@@ -569,11 +534,11 @@ export default function AdminMarketingPage() {
                           }}
                         >
                           {thumb && (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={thumb}
                               alt={item.title}
-                              fill
-                              style={{ objectFit: "cover" }}
+                              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
                             />
                           )}
                         </div>

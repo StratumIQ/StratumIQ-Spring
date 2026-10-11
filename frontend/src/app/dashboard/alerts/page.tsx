@@ -4,11 +4,7 @@ import ComingSoon from "@/components/dashboard/common/ComingSoon";
 
 export default function AlertsPage() {
   return (
-    <PageShell
-      title="Alerts"
-      description="Operational alerts will appear here when the module is connected to live fleet and maintenance events."
-      breadcrumbs={[{ label: "Alerts" }]}
-    >
+    <PageShell>
       <ComingSoon module="Alerts" />
     </PageShell>
   );

@@ -164,7 +164,7 @@ export default function EditFleet({ id }: { id: number }) {
 
   if (loading) {
     return (
-      <PageShell breadcrumbs={[{ label: "Fleet", href: "/dashboard/fleet" }]} maxWidth={720}>
+      <PageShell maxWidth={720}>
         <Skeleton height={400} className="d-skeleton-block" />
       </PageShell>
     );
@@ -172,7 +172,7 @@ export default function EditFleet({ id }: { id: number }) {
 
   if (fetchError || !equipment) {
     return (
-      <PageShell breadcrumbs={[{ label: "Fleet", href: "/dashboard/fleet" }]} maxWidth={720}>
+      <PageShell maxWidth={720}>
         <EmptyState
           icon={Search}
           title="Asset not found"
@@ -187,11 +187,6 @@ export default function EditFleet({ id }: { id: number }) {
     <PageShell
       title={`Edit ${equipment.name}`}
       description="Update asset details and operational metadata"
-      breadcrumbs={[
-        { label: "Fleet", href: "/dashboard/fleet" },
-        { label: equipment.name, href: `/dashboard/fleet/${id}` },
-        { label: "Edit" },
-      ]}
       maxWidth={720}
       footer={
         <>

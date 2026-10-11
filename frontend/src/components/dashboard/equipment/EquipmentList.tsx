@@ -49,7 +49,6 @@ export default function EquipmentListPage() {
   return (
     <PageShell
       title="Equipment Registry"
-      breadcrumbs={[{ label: "Equipment" }]}
       actions={
         <Button icon={<Plus size={15} />} onClick={() => router.push("/dashboard/equipment/new")}>
           Add Equipment

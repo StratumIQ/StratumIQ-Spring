@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { X, Pin, ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveAssetUrl, MARKETING } from "@/lib/constants";
 import type { MarketingItem } from "@/lib/api/marketing";
@@ -60,7 +59,12 @@ export default function MarketingPreviewModal({ item, items = [], onClose }: Pro
       >
         {banner && (
           <div style={{ position: "relative", height: 220 }}>
-            <Image src={banner} alt={currentItem.title} fill style={{ objectFit: "cover" }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={banner}
+              alt={currentItem.title}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
             <div style={{
               position: "absolute", inset: 0,
               background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.75))",

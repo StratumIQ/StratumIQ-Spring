@@ -135,10 +135,6 @@ export default function RegisterFleet() {
     <PageShell
       title="Register Fleet Asset"
       description="Add a new machine to your operational fleet"
-      breadcrumbs={[
-        { label: "Fleet", href: "/dashboard/fleet" },
-        { label: "New Asset" },
-      ]}
       maxWidth={720}
       footer={
         <>

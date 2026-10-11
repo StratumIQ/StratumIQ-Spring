@@ -119,10 +119,6 @@ export default function FleetDetail({ id }: { id: number }) {
       <PageShell
         title={eq.name}
         description={[eq.brand, eq.model].filter(Boolean).join(" · ") || "Fleet asset"}
-        breadcrumbs={[
-          { label: "Fleet", href: "/dashboard/fleet" },
-          { label: eq.name },
-        ]}
         maxWidth={1000}
         actions={
           <div className="d-page-actions">
@@ -679,7 +675,7 @@ function DetailRow({ label, value, icon }: { label: string; value: React.ReactNo
 
 function DetailSkeleton() {
   return (
-    <PageShell breadcrumbs={[{ label: "Fleet", href: "/dashboard/fleet" }]} maxWidth={1000}>
+    <PageShell maxWidth={1000}>
       <Skeleton height={220} className="d-skeleton-block" />
       <Skeleton height={48} className="d-skeleton-block d-mt-sm" />
       <Skeleton height={300} className="d-skeleton-block d-mt-sm" />

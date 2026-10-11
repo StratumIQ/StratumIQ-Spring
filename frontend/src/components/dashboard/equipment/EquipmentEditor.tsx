@@ -43,7 +43,7 @@ export default function EquipmentEditor({ equipmentId }: { equipmentId: string }
 
   if (loading) {
     return (
-      <PageShell breadcrumbs={[{ label: "Equipment", href: "/dashboard/equipment" }]}>
+      <PageShell>
         <Skeleton height={120} className="d-skeleton-block" />
         <Skeleton height={48} className="d-skeleton-block d-mt-sm" />
         <Skeleton height={400} className="d-skeleton-block d-mt-sm" />
@@ -53,7 +53,7 @@ export default function EquipmentEditor({ equipmentId }: { equipmentId: string }
 
   if (error || !spec) {
     return (
-      <PageShell breadcrumbs={[{ label: "Equipment", href: "/dashboard/equipment" }]}>
+      <PageShell>
         <EmptyState
           icon={Settings}
           title="Equipment not found"
@@ -70,11 +70,6 @@ export default function EquipmentEditor({ equipmentId }: { equipmentId: string }
     <PageShell
       title={`Edit ${eq.brand} ${eq.model_name}`}
       description={`${TYPE_LABELS[eq.equipment_type] ?? eq.equipment_type} · ${MOBILITY_LABELS[eq.mobility_type] ?? eq.mobility_type}`}
-      breadcrumbs={[
-        { label: "Equipment", href: "/dashboard/equipment" },
-        { label: eq.model_name, href: `/dashboard/equipment/${equipmentId}` },
-        { label: "Edit" },
-      ]}
       actions={
         <Link href={`/dashboard/equipment/${equipmentId}`}>
           <Button variant="outline" size="sm" icon={<ExternalLink size={14} />}>

@@ -1,9 +1,13 @@
 // FILE PATH: frontend/src/app/dashboard/equipment/page.tsx
+"use client";
 
-import EquipmentList from "@/components/dashboard/equipment/EquipmentList";
-
-export const metadata = { title: "Equipment Catalogue — StratumIQ" };
+import PageShell from "@/components/dashboard/layout/PageShell";
+import ComingSoon from "@/components/dashboard/common/ComingSoon";
 
 export default function EquipmentPage() {
-  return <EquipmentList />;
+  return (
+    <PageShell>
+      <ComingSoon module="Equipment" />
+    </PageShell>
+  );
 }
